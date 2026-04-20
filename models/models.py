@@ -40,17 +40,17 @@ class RieszNet(nn.Module):
         self.epsilon = nn.Parameter(torch.tensor(0.0))
 
     def get_outcome_predictions(self, covariates, treatments):
-        shared_representation = torch.cat([(self.shared_layers(covariates)), treatments], dim=1)
+        shared_representation = self.shared_layers(torch.cat((covariates, treatments), dim=1))
         outcome_prediction = self.outcome_layers(shared_representation)
         riesz_prediction = self.riesz_layers(shared_representation)
         return outcome_prediction + self.epsilon * riesz_prediction
 
     def get_uncorrected_outcome_predictions(self, covariates, treatments):
-        shared_representation = torch.cat([(self.shared_layers(covariates)), treatments], dim=1)
+        shared_representation = self.shared_layers(torch.cat((covariates, treatments), dim=1))
         return self.outcome_layers(shared_representation)
 
     def get_riesz_predictions(self, covariates, treatments):
-        shared_representation = torch.cat([(self.shared_layers(covariates)), treatments], dim=1)
+        shared_representation = self.shared_layers(torch.cat((covariates, treatments), dim=1))
         return self.riesz_layers(shared_representation)
 
 
