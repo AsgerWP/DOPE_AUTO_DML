@@ -17,19 +17,18 @@ class ATEDataset:
             train_size=train_size,
             stratify=self.data[:, self.treatment_column],
         )
-
         return (
             ATEDataset(
-                train_data,
-                self.outcome_column,
-                self.treatment_column,
-                self.covariate_columns,
+                data=train_data,
+                treatment_column=self.treatment_column,
+                outcome_column=self.outcome_column,
+                covariate_columns=self.covariate_columns,
             ),
             ATEDataset(
-                test_data,
-                self.outcome_column,
-                self.treatment_column,
-                self.covariate_columns,
+                data=test_data,
+                treatment_column=self.treatment_column,
+                outcome_column=self.outcome_column,
+                covariate_columns=self.covariate_columns,
             ),
         )
 
