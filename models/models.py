@@ -5,16 +5,9 @@ from torch import nn
 class DOPENeuralNet(nn.Module):
     def __init__(self, shared_dimensions, outcome_dimensions, riesz_dimensions, activation):
         super().__init__()
-        shared_layers = build_layers(dimensions=shared_dimensions, activation=activation)
-        self.shared_layers = nn.Sequential(*shared_layers)
-
-        outcome_layers = build_layers(dimensions=outcome_dimensions, activation=activation)
-        outcome_layers.append(nn.Linear(outcome_dimensions[-1], 1))
-        self.outcome_layers = nn.Sequential(*outcome_layers)
-
-        riesz_layers = build_layers(dimensions=riesz_dimensions, activation=activation)
-        riesz_layers.append(nn.Linear(riesz_dimensions[-1], 1))
-        self.riesz_layers = nn.Sequential(*riesz_layers)
+        self.shared_layers = MLP(dimensions=shared_dimensions, activation=activation, use_final_activation=True)
+        self.outcome_layers = MLP(dimensions=outcome_dimensions, activation=activation, use_final_activation=False)
+        self.riesz_layers = MLP(dimensions=riesz_dimensions, activation=activation, use_final_activation=False)
 
     def get_outcome_predictions(self, covariates, treatments):
         shared_representation = torch.cat([(self.shared_layers(covariates)), treatments], dim=1)
@@ -28,15 +21,9 @@ class DOPENeuralNet(nn.Module):
 class RieszNet(nn.Module):
     def __init__(self, shared_dimensions, outcome_dimensions, activation):
         super().__init__()
-        shared_layers = build_layers(dimensions=shared_dimensions, activation=activation)
-        self.shared_layers = nn.Sequential(*shared_layers)
-
-        outcome_layers = build_layers(dimensions=outcome_dimensions, activation=activation)
-        outcome_layers.append(nn.Linear(outcome_dimensions[-1], 1))
-        self.outcome_layers = nn.Sequential(*outcome_layers)
-
+        self.shared_layers = MLP(dimensions=shared_dimensions, activation=activation, use_final_activation=True)
+        self.outcome_layers = MLP(dimensions=outcome_dimensions, activation=activation, use_final_activation=False)
         self.riesz_layers = nn.Linear(shared_dimensions[-1], 1)
-
         self.epsilon = nn.Parameter(torch.tensor(0.0))
 
     def get_outcome_predictions(self, covariates, treatments):
@@ -54,9 +41,20 @@ class RieszNet(nn.Module):
         return self.riesz_layers(shared_representation)
 
 
-def build_layers(dimensions, activation):
-    layers = []
-    for input_dim, output_dim in zip(dimensions[:-1], dimensions[1:]):
-        layers.append(nn.Linear(input_dim, output_dim))
-        layers.append(activation())
-    return layers
+class MLP(nn.Module):
+    def __init__(self, dimensions, activation, use_final_activation):
+        super().__init__()
+        if len(dimensions) < 2:
+            raise ValueError("MLP requires at least two dimensions (input and output).")
+
+        layers = []
+        pairs = list(zip(dimensions[:-1], dimensions[1:]))
+        for i, (in_features, out_features) in enumerate(pairs):
+            layers.append(nn.Linear(in_features, out_features))
+            is_last = i == len(pairs) - 1
+            if not is_last or use_final_activation:
+                layers.append(activation())
+        self.layers = nn.Sequential(*layers)
+
+    def forward(self, x):
+        return self.layers(x)
