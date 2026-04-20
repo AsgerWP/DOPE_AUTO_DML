@@ -7,20 +7,18 @@ class DOPENeuralNet(nn.Module):
         self, shared_dimensions, outcome_dimensions, riesz_dimensions, activation
     ):
         super().__init__()
-        shared_layers = self.build_layers(
+        shared_layers = build_layers(
             dimensions=shared_dimensions, activation=activation
         )
         self.shared_layers = nn.Sequential(*shared_layers)
 
-        outcome_layers = self.build_layers(
+        outcome_layers = build_layers(
             dimensions=outcome_dimensions, activation=activation
         )
         outcome_layers.append(nn.Linear(outcome_dimensions[-1], 1))
         self.outcome_layers = nn.Sequential(*outcome_layers)
 
-        riesz_layers = self.build_layers(
-            dimensions=riesz_dimensions, activation=activation
-        )
+        riesz_layers = build_layers(dimensions=riesz_dimensions, activation=activation)
         riesz_layers.append(nn.Linear(riesz_dimensions[-1], 1))
         self.riesz_layers = nn.Sequential(*riesz_layers)
 
@@ -37,10 +35,10 @@ class DOPENeuralNet(nn.Module):
             self.get_shared_representation(covariates=covariates, treatments=treatments)
         )
 
-    @staticmethod
-    def build_layers(dimensions, activation):
-        layers = []
-        for input_dim, output_dim in zip(dimensions[:-1], dimensions[1:]):
-            layers.append(nn.Linear(input_dim, output_dim))
-            layers.append(activation())
-        return layers
+
+def build_layers(dimensions, activation):
+    layers = []
+    for input_dim, output_dim in zip(dimensions[:-1], dimensions[1:]):
+        layers.append(nn.Linear(input_dim, output_dim))
+        layers.append(activation())
+    return layers
