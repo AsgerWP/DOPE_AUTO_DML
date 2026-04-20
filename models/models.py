@@ -3,18 +3,12 @@ from torch import nn
 
 
 class DOPENeuralNet(nn.Module):
-    def __init__(
-        self, shared_dimensions, outcome_dimensions, riesz_dimensions, activation
-    ):
+    def __init__(self, shared_dimensions, outcome_dimensions, riesz_dimensions, activation):
         super().__init__()
-        shared_layers = build_layers(
-            dimensions=shared_dimensions, activation=activation
-        )
+        shared_layers = build_layers(dimensions=shared_dimensions, activation=activation)
         self.shared_layers = nn.Sequential(*shared_layers)
 
-        outcome_layers = build_layers(
-            dimensions=outcome_dimensions, activation=activation
-        )
+        outcome_layers = build_layers(dimensions=outcome_dimensions, activation=activation)
         outcome_layers.append(nn.Linear(outcome_dimensions[-1], 1))
         self.outcome_layers = nn.Sequential(*outcome_layers)
 
@@ -23,15 +17,11 @@ class DOPENeuralNet(nn.Module):
         self.riesz_layers = nn.Sequential(*riesz_layers)
 
     def get_outcome_predictions(self, covariates, treatments):
-        shared_representation = torch.cat(
-            [(self.shared_layers(covariates)), treatments], dim=1
-        )
+        shared_representation = torch.cat([(self.shared_layers(covariates)), treatments], dim=1)
         return self.outcome_layers(shared_representation)
 
     def get_riesz_predictions(self, covariates, treatments):
-        shared_representation = torch.cat(
-            [(self.shared_layers(covariates)), treatments], dim=1
-        )
+        shared_representation = torch.cat([(self.shared_layers(covariates)), treatments], dim=1)
         return self.riesz_layers(shared_representation)
 
 

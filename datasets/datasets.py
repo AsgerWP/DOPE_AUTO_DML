@@ -13,9 +13,7 @@ class ATEDataset:
 
     def split_into_train_and_test_sets(self, train_size=0.8):
         train_data, test_data = train_test_split(
-            self.data,
-            train_size=train_size,
-            stratify=self.data[:, self.treatment_column],
+            self.data, train_size=train_size, stratify=self.data[:, self.treatment_column]
         )
         return (
             ATEDataset(
@@ -38,8 +36,8 @@ class ATEDataset:
         outcomes = self.data[:, self.outcome_column].astype(np.float32)
         dataset = TensorDataset(
             torch.from_numpy(covariates),
-            torch.from_numpy(treatments).reshape(-1,1),
-            torch.from_numpy(outcomes).reshape(-1,1),
+            torch.from_numpy(treatments).reshape(-1, 1),
+            torch.from_numpy(outcomes).reshape(-1, 1),
         )
         return DataLoader(dataset=dataset, batch_size=batch_size, shuffle=True)
 
@@ -52,9 +50,4 @@ class IHDPDataset(ATEDataset):
     def load_replication(cls, replication_id):
         path = "datasets/ihdp_replications/ihdp_" + str(replication_id) + ".csv"
         data = np.loadtxt(path)
-        return cls(
-            data=data,
-            treatment_column=0,
-            outcome_column=1,
-            covariate_columns=[i + 5 for i in range(25)],
-        )
+        return cls(data=data, treatment_column=0, outcome_column=1, covariate_columns=[i + 5 for i in range(25)])
