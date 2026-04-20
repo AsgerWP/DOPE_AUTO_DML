@@ -1,4 +1,5 @@
 import numpy as np
+from sklearn.model_selection import train_test_split
 
 
 class ATEDataset:
@@ -7,6 +8,28 @@ class ATEDataset:
         self.treatment_column = treatment_column
         self.outcome_column = outcome_column
         self.covariate_columns = covariate_columns
+
+    def split_into_train_and_test_sets(self, train_size=0.8):
+        train_data, test_data = train_test_split(
+            self.data,
+            train_size=train_size,
+            stratify=self.data[:, self.treatment_column],
+        )
+
+        return (
+            ATEDataset(
+                train_data,
+                self.outcome_column,
+                self.treatment_column,
+                self.covariate_columns,
+            ),
+            ATEDataset(
+                test_data,
+                self.outcome_column,
+                self.treatment_column,
+                self.covariate_columns,
+            ),
+        )
 
 
 class IHDPDataset(ATEDataset):
