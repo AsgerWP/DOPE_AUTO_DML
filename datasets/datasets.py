@@ -1,5 +1,7 @@
 import numpy as np
+import torch
 from sklearn.model_selection import train_test_split
+from torch.utils.data import DataLoader, TensorDataset
 
 
 class ATEDataset:
@@ -30,6 +32,17 @@ class ATEDataset:
                 self.covariate_columns,
             ),
         )
+
+    def create_dataloader(self, batch_size):
+        covariates = self.data[:, self.covariate_columns].astype(np.float32)
+        treatments = self.data[:, self.treatment_column].astype(np.float32)
+        outcomes = self.data[:, self.outcome_column].astype(np.float32)
+        dataset = TensorDataset(
+            torch.from_numpy(covariates),
+            torch.from_numpy(treatments),
+            torch.from_numpy(outcomes),
+        )
+        return DataLoader(dataset=dataset, batch_size=batch_size, shuffle=True)
 
 
 class IHDPDataset(ATEDataset):
