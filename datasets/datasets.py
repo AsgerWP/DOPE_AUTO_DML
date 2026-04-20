@@ -15,6 +15,11 @@ class IHDPDataset(ATEDataset):
 
     @classmethod
     def load_replication(cls, replication_id):
-        path = 'datasets/ihdp_replications/ihdp_' + str(replication_id) + '.csv'
+        path = "datasets/ihdp_replications/ihdp_" + str(replication_id) + ".csv"
         data = np.loadtxt(path)
-        return cls(data=data, treatment_column=0, outcome_column=1, covariate_columns=[i + 5 for i in range(25)])
+        return cls(
+            data=data,
+            treatment_column=0,
+            outcome_column=1,
+            covariate_columns=[i + 5 for i in range(25)],
+        )
