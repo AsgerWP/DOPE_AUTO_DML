@@ -38,8 +38,8 @@ class ATEDataset:
         outcomes = self.data[:, self.outcome_column].astype(np.float32)
         dataset = TensorDataset(
             torch.from_numpy(covariates),
-            torch.from_numpy(treatments),
-            torch.from_numpy(outcomes),
+            torch.from_numpy(treatments).reshape(-1,1),
+            torch.from_numpy(outcomes).reshape(-1,1),
         )
         return DataLoader(dataset=dataset, batch_size=batch_size, shuffle=True)
 
