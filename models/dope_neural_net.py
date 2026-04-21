@@ -4,6 +4,18 @@ from torch import nn
 from models.utils import MLP
 
 
+class SharedTrunk(nn.Module):
+    def __init__(self, n_covariates, hidden_sizes, representation_size, activation):
+        super().__init__()
+        self.layers = MLP(
+            input_size=n_covariates,
+            hidden_sizes=hidden_sizes,
+            output_size=representation_size,
+            activation=activation,
+            activation_after_final_layer=True,
+        )
+
+
 class THead(nn.Module):
     def __init__(self, representation_size, hidden_sizes, activation):
         super().__init__()
