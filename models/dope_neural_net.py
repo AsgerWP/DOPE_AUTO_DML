@@ -6,16 +6,25 @@ from models.utils import MLP
 
 class DOPENeuralNet(nn.Module):
     def __init__(
-        self, n_covariates, shared_hidden_layers, not_shared_hidden_layers, representation_size, activation, branch_type
+        self,
+        n_covariates,
+        shared_hidden_layers,
+        not_shared_hidden_layers,
+        representation_size,
+        activation,
+        branch_type,
+        dropout_prob=0,
     ):
         super().__init__()
-        self.shared_trunk = SharedTrunk(n_covariates, shared_hidden_layers, representation_size, activation)
+        self.shared_trunk = SharedTrunk(
+            n_covariates, shared_hidden_layers, representation_size, activation, dropout_prob
+        )
         if branch_type == "T":
-            self.outcome_head = THead(representation_size, not_shared_hidden_layers, activation)
-            self.riesz_head = THead(representation_size, not_shared_hidden_layers, activation)
+            self.outcome_head = THead(representation_size, not_shared_hidden_layers, activation, dropout_prob)
+            self.riesz_head = THead(representation_size, not_shared_hidden_layers, activation, dropout_prob)
         elif branch_type == "S":
-            self.outcome_head = SHead(representation_size, not_shared_hidden_layers, activation)
-            self.riesz_head = SHead(representation_size, not_shared_hidden_layers, activation)
+            self.outcome_head = SHead(representation_size, not_shared_hidden_layers, activation, dropout_prob)
+            self.riesz_head = SHead(representation_size, not_shared_hidden_layers, activation, dropout_prob)
         else:
             raise ValueError("Invalid branch type. Must be 'T' or 'S'.")
 
@@ -29,13 +38,14 @@ class DOPENeuralNet(nn.Module):
 
 
 class SharedTrunk(nn.Module):
-    def __init__(self, n_covariates, hidden_sizes, representation_size, activation):
+    def __init__(self, n_covariates, hidden_sizes, representation_size, activation, dropout_prob):
         super().__init__()
         self.layers = MLP(
             input_size=n_covariates,
             hidden_sizes=hidden_sizes,
             output_size=representation_size,
             activation=activation,
+            dropout_prob=dropout_prob,
         )
 
     def forward(self, covariates):
@@ -43,19 +53,21 @@ class SharedTrunk(nn.Module):
 
 
 class THead(nn.Module):
-    def __init__(self, representation_size, hidden_sizes, activation):
+    def __init__(self, representation_size, hidden_sizes, activation, dropout_prob):
         super().__init__()
         self.t_layers = MLP(
             input_size=representation_size,
             hidden_sizes=hidden_sizes,
             output_size=1,
             activation=activation,
+            dropout_prob=dropout_prob,
         )
         self.c_layers = MLP(
             input_size=representation_size,
             hidden_sizes=hidden_sizes,
             output_size=1,
             activation=activation,
+            dropout_prob=dropout_prob,
         )
 
     def forward(self, representation, treatment):
@@ -63,13 +75,14 @@ class THead(nn.Module):
 
 
 class SHead(nn.Module):
-    def __init__(self, representation_size, hidden_sizes, activation):
+    def __init__(self, representation_size, hidden_sizes, activation, dropout_prob):
         super().__init__()
         self.layers = MLP(
             input_size=representation_size + 1,
             hidden_sizes=hidden_sizes,
             output_size=1,
             activation=activation,
+            dropout_prob=dropout_prob,
         )
 
     def forward(self, representation, treatment):
