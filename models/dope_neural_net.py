@@ -36,6 +36,16 @@ class DOPENeuralNet(nn.Module):
         representation = self.shared_trunk(covariates)
         return self.riesz_head(representation, treatment)
 
+    def calculate_estimates(self, covariates, treatment, outcome):
+        plugin_terms = self.outcome_forward(covariates, torch.ones_like(treatment)) - self.outcome_forward(
+            covariates, torch.zeros_like(treatment)
+        )
+        correction_terms = self.riesz_forward(covariates, treatment) * (
+            outcome - self.outcome_forward(covariates, treatment)
+        )
+        dr_terms = plugin_terms + correction_terms
+        return {"point_estimate": dr_terms.mean(), "var_estimate": dr_terms.var()}
+
 
 class SharedTrunk(nn.Module):
     def __init__(self, n_covariates, hidden_sizes, representation_size, activation, dropout_prob):
