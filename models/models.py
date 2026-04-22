@@ -17,19 +17,39 @@ class DOPENeuralNet(nn.Module):
     ):
         super().__init__()
         self.shared_trunk = MLP(
-            n_covariates,
-            shared_hidden_layers[:-1],
-            shared_hidden_layers[-1],
-            activation,
-            dropout_prob,
-            activation_after_final_shared_layer,
+            input_size=n_covariates,
+            hidden_sizes=shared_hidden_layers[:-1],
+            output_size=shared_hidden_layers[-1],
+            activation=activation,
+            dropout_prob=dropout_prob,
+            activation_after_final_layer=activation_after_final_shared_layer,
         )
         if branch_type == "T":
-            self.outcome_branch = THead(shared_hidden_layers[-1], not_shared_hidden_layers, activation, dropout_prob)
-            self.riesz_branch = THead(shared_hidden_layers[-1], not_shared_hidden_layers, activation, dropout_prob)
+            self.outcome_branch = THead(
+                representation_size=shared_hidden_layers[-1],
+                hidden_sizes=not_shared_hidden_layers,
+                activation=activation,
+                dropout_prob=dropout_prob,
+            )
+            self.riesz_branch = THead(
+                representation_size=shared_hidden_layers[-1],
+                hidden_sizes=not_shared_hidden_layers,
+                activation=activation,
+                dropout_prob=dropout_prob,
+            )
         elif branch_type == "S":
-            self.outcome_branch = SHead(shared_hidden_layers[-1], not_shared_hidden_layers, activation, dropout_prob)
-            self.riesz_branch = SHead(shared_hidden_layers[-1], not_shared_hidden_layers, activation, dropout_prob)
+            self.outcome_branch = SHead(
+                representation_size=shared_hidden_layers[-1],
+                hidden_sizes=not_shared_hidden_layers,
+                activation=activation,
+                dropout_prob=dropout_prob,
+            )
+            self.riesz_branch = SHead(
+                representation_size=shared_hidden_layers[-1],
+                hidden_sizes=not_shared_hidden_layers,
+                activation=activation,
+                dropout_prob=dropout_prob,
+            )
         else:
             raise ValueError("Invalid branch type. Must be 'T' or 'S'.")
 
