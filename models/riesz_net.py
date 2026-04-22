@@ -87,9 +87,25 @@ class RieszNet(nn.Module):
 
     def fit(self, data, lr, weight_decay, batch_size, epochs, patience):
         device = next(self.parameters()).device
+        decay_params = []
+        no_decay_params = []
+
+        for name, param in self.named_parameters():
+            if not param.requires_grad:
+                continue
+            if name == "epsilon":
+                no_decay_params.append(param)
+            else:
+                decay_params.append(param)
+
         optimizer = torch.optim.Adam(
-            filter(lambda p: p.requires_grad, self.parameters()), lr=lr, weight_decay=weight_decay
+            [
+                {"params": decay_params, "weight_decay": weight_decay},
+                {"params": no_decay_params, "weight_decay": 0.0},
+            ],
+            lr=lr,
         )
+
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
             optimizer,
             mode="min",
