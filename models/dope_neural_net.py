@@ -1,7 +1,6 @@
-import torch
 from torch import nn
 
-from models.utils import MLP
+from models.utils import SharedTrunk, THead, SHead
 
 
 class DOPENeuralNet(nn.Module):
@@ -31,62 +30,3 @@ class DOPENeuralNet(nn.Module):
     def freeze_shared_trunk(self):
         for param in self.shared_trunk.parameters():
             param.requires_grad = False
-
-
-class SharedTrunk(nn.Module):
-    def __init__(
-        self, n_covariates, hidden_sizes, representation_size, activation, dropout_prob, activation_after_representation
-    ):
-        super().__init__()
-        self.layers = MLP(
-            input_size=n_covariates,
-            hidden_sizes=hidden_sizes,
-            output_size=representation_size,
-            activation=activation,
-            dropout_prob=dropout_prob,
-            activation_after_final_layer=activation_after_representation,
-        )
-
-    def forward(self, covariates):
-        return self.layers(covariates)
-
-
-class THead(nn.Module):
-    def __init__(self, representation_size, hidden_sizes, activation, dropout_prob):
-        super().__init__()
-        self.t_layers = MLP(
-            input_size=representation_size,
-            hidden_sizes=hidden_sizes,
-            output_size=1,
-            activation=activation,
-            dropout_prob=dropout_prob,
-            activation_after_final_layer=False,
-        )
-        self.c_layers = MLP(
-            input_size=representation_size,
-            hidden_sizes=hidden_sizes,
-            output_size=1,
-            activation=activation,
-            dropout_prob=dropout_prob,
-            activation_after_final_layer=False,
-        )
-
-    def forward(self, representation, treatment):
-        return self.t_layers(representation) * treatment + self.c_layers(representation) * (1 - treatment)
-
-
-class SHead(nn.Module):
-    def __init__(self, representation_size, hidden_sizes, activation, dropout_prob):
-        super().__init__()
-        self.layers = MLP(
-            input_size=representation_size + 1,
-            hidden_sizes=hidden_sizes,
-            output_size=1,
-            activation=activation,
-            dropout_prob=dropout_prob,
-            activation_after_final_layer=False,
-        )
-
-    def forward(self, representation, treatment):
-        x = torch.cat([representation, treatment], dim=1)
-        return self.layers(x)
