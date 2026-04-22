@@ -19,7 +19,7 @@ def train_model(model, data: ATEDataset, loss_fn, lr, weight_decay, batch_size, 
         for batch in train_loader:
             optimizer.zero_grad()
             batch = tuple(x.to(device) for x in batch)
-            loss = loss_fn(model, batch)
+            loss = loss_fn(batch)
             loss.backward()
             optimizer.step()
         model.eval()
@@ -27,7 +27,7 @@ def train_model(model, data: ATEDataset, loss_fn, lr, weight_decay, batch_size, 
             test_loss = 0
             for batch in test_loader:
                 batch = tuple(x.to(device) for x in batch)
-                test_loss += loss_fn(model, batch).item()
+                test_loss += loss_fn(batch).item()
             if test_loss < best:
                 best = test_loss
                 counter = 0
