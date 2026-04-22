@@ -45,3 +45,18 @@ class DOPENeuralNet(nn.Module):
         riesz_treatment = self.riesz_head(representation, torch.ones_like(treatment))
         riesz_control = self.riesz_head(representation, torch.zeros_like(treatment))
         return (riesz_prediction**2 - 2 * (riesz_treatment - riesz_control)).mean()
+
+    def get_estimates(self, data):
+        device = next(self.parameters()).device
+        covariates = data.covariates_tensor().to(device)
+        treatment = data.treatments_tensor().to(device)
+        outcome = data.outcomes_tensor().to(device)
+        representation = self.shared_trunk(covariates)
+        outcome_prediction = self.outcome_head(representation, treatment)
+        riesz_prediction = self.riesz_head(representation, treatment)
+        treated_outcome_prediction = self.outcome_head(representation, torch.ones_like(treatment))
+        control_outcome_prediction = self.outcome_head(representation, torch.zeros_like(treatment))
+        plugin_terms = treated_outcome_prediction - control_outcome_prediction
+        correction_terms = riesz_prediction * (outcome - outcome_prediction)
+        dr_terms = plugin_terms + correction_terms
+        return {"point_estimate": dr_terms.mean().item(), "var_estimate": dr_terms.var().item()}

@@ -3,8 +3,8 @@ from datasets.datasets import ATEDataset
 import copy
 
 
-def train_model(model, data: ATEDataset, loss_fn, lr, weight_decay, batch_size, epochs, patience, device):
-    model.to(device)
+def train_model(model, data: ATEDataset, loss_fn, lr, weight_decay, batch_size, epochs, patience):
+    device = next(model.parameters()).device
     optimizer = torch.optim.Adam(
         filter(lambda p: p.requires_grad, model.parameters()), lr=lr, weight_decay=weight_decay
     )
