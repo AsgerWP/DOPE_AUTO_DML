@@ -56,6 +56,10 @@ class DOPENeuralNet(nn.Module):
 
         return {"point_estimate": dr_terms.mean(), "var_estimate": dr_terms.var()}
 
+    def freeze_shared_trunk(self):
+        for param in self.shared_trunk.parameters():
+            param.requires_grad = False
+
 
 class SharedTrunk(nn.Module):
     def __init__(self, n_covariates, hidden_sizes, representation_size, activation, dropout_prob):
