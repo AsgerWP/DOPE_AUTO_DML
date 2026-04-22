@@ -11,7 +11,7 @@ class ATEDataset:
         self.outcome_column = outcome_column
         self.covariate_columns = covariate_columns
 
-    def split_into_train_and_test_sets(self, train_size=0.8):
+    def split_into_train_and_test_sets(self, train_size):
         train_data, test_data = train_test_split(
             self.data, train_size=train_size, stratify=self.data[:, self.treatment_column]
         )
