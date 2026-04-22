@@ -2,7 +2,7 @@ from torch import nn
 
 
 class MLP(nn.Module):
-    def __init__(self, input_size, hidden_sizes, output_size, activation, dropout_prob):
+    def __init__(self, input_size, hidden_sizes, output_size, activation, dropout_prob, activation_after_final_layer):
         super().__init__()
         layers = []
         input_sizes = [input_size] + hidden_sizes
@@ -13,6 +13,8 @@ class MLP(nn.Module):
                 layers.append(activation())
                 if dropout_prob > 0:
                     layers.append(nn.Dropout(dropout_prob))
+        if activation_after_final_layer:
+            layers.append(activation())
         self.layers = nn.Sequential(*layers)
 
     def forward(self, x):

@@ -17,7 +17,7 @@ class DOPENeuralNet(nn.Module):
     ):
         super().__init__()
         self.shared_trunk = SharedTrunk(
-            n_covariates, shared_hidden_layers, representation_size, activation, dropout_prob
+            n_covariates, shared_hidden_layers, representation_size, activation, dropout_prob, False
         )
         if branch_type == "T":
             self.outcome_head = THead(representation_size, not_shared_hidden_layers, activation, dropout_prob)
@@ -34,7 +34,9 @@ class DOPENeuralNet(nn.Module):
 
 
 class SharedTrunk(nn.Module):
-    def __init__(self, n_covariates, hidden_sizes, representation_size, activation, dropout_prob):
+    def __init__(
+        self, n_covariates, hidden_sizes, representation_size, activation, dropout_prob, activation_after_representation
+    ):
         super().__init__()
         self.layers = MLP(
             input_size=n_covariates,
@@ -42,6 +44,7 @@ class SharedTrunk(nn.Module):
             output_size=representation_size,
             activation=activation,
             dropout_prob=dropout_prob,
+            activation_after_final_layer=activation_after_representation,
         )
 
     def forward(self, covariates):
@@ -57,6 +60,7 @@ class THead(nn.Module):
             output_size=1,
             activation=activation,
             dropout_prob=dropout_prob,
+            activation_after_final_layer=False,
         )
         self.c_layers = MLP(
             input_size=representation_size,
@@ -64,6 +68,7 @@ class THead(nn.Module):
             output_size=1,
             activation=activation,
             dropout_prob=dropout_prob,
+            activation_after_final_layer=False,
         )
 
     def forward(self, representation, treatment):
@@ -79,6 +84,7 @@ class SHead(nn.Module):
             output_size=1,
             activation=activation,
             dropout_prob=dropout_prob,
+            activation_after_final_layer=False,
         )
 
     def forward(self, representation, treatment):
