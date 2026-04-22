@@ -31,15 +31,20 @@ class ATEDataset:
         )
 
     def create_dataloader(self, batch_size):
-        covariates = self.data[:, self.covariate_columns].astype(np.float32)
-        treatments = self.data[:, self.treatment_column].astype(np.float32)
-        outcomes = self.data[:, self.outcome_column].astype(np.float32)
-        dataset = TensorDataset(
-            torch.from_numpy(covariates),
-            torch.from_numpy(treatments).reshape(-1, 1),
-            torch.from_numpy(outcomes).reshape(-1, 1),
-        )
+        dataset = TensorDataset(self.covariates_tensor(), self.treatments_tensor(), self.outcomes_tensor())
         return DataLoader(dataset=dataset, batch_size=batch_size, shuffle=True)
+
+    def outcomes_tensor(self):
+        outcomes = self.data[:, self.outcome_column].astype(np.float32)
+        return torch.from_numpy(outcomes).reshape(-1, 1)
+
+    def treatments_tensor(self):
+        treatments = self.data[:, self.treatment_column].astype(np.float32)
+        return torch.from_numpy(treatments).reshape(-1, 1)
+
+    def covariates_tensor(self):
+        covariates = self.data[:, self.covariate_columns].astype(np.float32)
+        return torch.from_numpy(covariates)
 
 
 class IHDPDataset(ATEDataset):
