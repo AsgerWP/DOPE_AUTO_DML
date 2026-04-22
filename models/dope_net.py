@@ -11,7 +11,8 @@ class DOPENeuralNet(nn.Module):
         shared_hidden_layers,
         not_shared_hidden_layers,
         activation,
-        branch_type,
+        outcome_branch_type,
+        riesz_branch_type,
         activation_after_final_shared_layer,
         dropout_prob=0,
     ):
@@ -24,26 +25,31 @@ class DOPENeuralNet(nn.Module):
             dropout_prob=dropout_prob,
             activation_after_final_layer=activation_after_final_shared_layer,
         )
-        if branch_type == "T":
+        if outcome_branch_type == "T":
             self.outcome_branch = THead(
                 representation_size=shared_hidden_layers[-1],
                 hidden_sizes=not_shared_hidden_layers,
                 activation=activation,
                 dropout_prob=dropout_prob,
             )
-            self.riesz_branch = THead(
-                representation_size=shared_hidden_layers[-1],
-                hidden_sizes=not_shared_hidden_layers,
-                activation=activation,
-                dropout_prob=dropout_prob,
-            )
-        elif branch_type == "S":
+        elif outcome_branch_type == "S":
             self.outcome_branch = SHead(
                 representation_size=shared_hidden_layers[-1],
                 hidden_sizes=not_shared_hidden_layers,
                 activation=activation,
                 dropout_prob=dropout_prob,
             )
+        else:
+            raise ValueError("Invalid branch type. Must be 'T' or 'S'.")
+
+        if riesz_branch_type == "T":
+            self.riesz_branch = THead(
+                representation_size=shared_hidden_layers[-1],
+                hidden_sizes=not_shared_hidden_layers,
+                activation=activation,
+                dropout_prob=dropout_prob,
+            )
+        elif riesz_branch_type == "S":
             self.riesz_branch = SHead(
                 representation_size=shared_hidden_layers[-1],
                 hidden_sizes=not_shared_hidden_layers,
