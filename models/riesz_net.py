@@ -43,9 +43,9 @@ class RieszNet(nn.Module):
         control_representation = self.shared_trunk(torch.cat((covariates, torch.zeros_like(treatment)), dim=1))
 
         outcome_prediction = self.outcome_branch(representation, treatment)
-        riesz_prediction = self.riesz_branch(representation, treatment)
-        treated_riesz_prediction = self.riesz_branch(treated_representation, torch.ones_like(treatment))
-        control_riesz_prediction = self.riesz_branch(control_representation, torch.zeros_like(treatment))
+        riesz_prediction = self.riesz_branch(representation)
+        treated_riesz_prediction = self.riesz_branch(treated_representation)
+        control_riesz_prediction = self.riesz_branch(control_representation)
 
         riesz_loss = (riesz_prediction**2 - 2 * (treated_riesz_prediction - control_riesz_prediction)).mean()
         outcome_loss = nn.functional.mse_loss(outcome_prediction, outcome)
@@ -57,3 +57,32 @@ class RieszNet(nn.Module):
             + self.loss_weights["outcome"] * outcome_loss
             + self.loss_weights["tmle"] * tmle_loss
         )
+
+    def get_estimates(self, data):
+        device = next(self.parameters()).device
+        covariates = data.covariates_tensor().to(device)
+        treatment = data.treatments_tensor().to(device)
+        outcome = data.outcomes_tensor().to(device)
+
+        representation = self.shared_trunk(torch.cat((covariates, treatment), dim=1))
+        treated_representation = self.shared_trunk(torch.cat((covariates, torch.ones_like(treatment)), dim=1))
+        control_representation = self.shared_trunk(torch.cat((covariates, torch.zeros_like(treatment)), dim=1))
+
+        riesz_prediction = self.riesz_branch(representation)
+        treated_riesz_prediction = self.riesz_branch(treated_representation)
+        control_riesz_prediction = self.riesz_branch(control_representation)
+
+        outcome_prediction = self.outcome_branch(representation, treatment) + self.epsilon * riesz_prediction
+        treated_outcome_prediction = (
+            self.outcome_branch(treated_representation, torch.ones_like(treatment))
+            + self.epsilon * treated_riesz_prediction
+        )
+        control_outcome_prediction = (
+            self.outcome_branch(control_representation, torch.zeros_like(treatment))
+            + self.epsilon * control_riesz_prediction
+        )
+
+        plugin_terms = treated_outcome_prediction - control_outcome_prediction
+        correction_terms = riesz_prediction * (outcome - outcome_prediction)
+        dr_terms = plugin_terms + correction_terms
+        return {"point_estimate": dr_terms.mean().item(), "var_estimate": dr_terms.var().item()}
