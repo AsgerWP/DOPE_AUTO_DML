@@ -10,12 +10,10 @@ class MLP(nn.Module):
         output_sizes = hidden_sizes + [output_size]
         for i, (in_size, out_size) in enumerate(zip(input_sizes, output_sizes)):
             layers.append(nn.Linear(in_size, out_size))
-            if i + 1 < len(input_sizes):
+            if i + 1 < len(input_sizes) or activation_after_final_layer:
                 layers.append(activation())
                 if dropout_prob > 0:
                     layers.append(nn.Dropout(dropout_prob))
-        if activation_after_final_layer:
-            layers.append(activation())
         self.layers = nn.Sequential(*layers)
 
     def forward(self, x):

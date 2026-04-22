@@ -10,21 +10,26 @@ class DOPENeuralNet(nn.Module):
         n_covariates,
         shared_hidden_layers,
         not_shared_hidden_layers,
-        representation_size,
         activation,
         branch_type,
+        activation_after_final_shared_layer,
         dropout_prob=0,
     ):
         super().__init__()
         self.shared_trunk = MLP(
-            n_covariates, shared_hidden_layers, representation_size, activation, dropout_prob, False
+            n_covariates,
+            shared_hidden_layers[:-1],
+            shared_hidden_layers[-1],
+            activation,
+            dropout_prob,
+            activation_after_final_shared_layer,
         )
         if branch_type == "T":
-            self.outcome_head = THead(representation_size, not_shared_hidden_layers, activation, dropout_prob)
-            self.riesz_head = THead(representation_size, not_shared_hidden_layers, activation, dropout_prob)
+            self.outcome_head = THead(shared_hidden_layers[-1], not_shared_hidden_layers, activation, dropout_prob)
+            self.riesz_head = THead(shared_hidden_layers[-1], not_shared_hidden_layers, activation, dropout_prob)
         elif branch_type == "S":
-            self.outcome_head = SHead(representation_size, not_shared_hidden_layers, activation, dropout_prob)
-            self.riesz_head = SHead(representation_size, not_shared_hidden_layers, activation, dropout_prob)
+            self.outcome_head = SHead(shared_hidden_layers[-1], not_shared_hidden_layers, activation, dropout_prob)
+            self.riesz_head = SHead(shared_hidden_layers[-1], not_shared_hidden_layers, activation, dropout_prob)
         else:
             raise ValueError("Invalid branch type. Must be 'T' or 'S'.")
 
