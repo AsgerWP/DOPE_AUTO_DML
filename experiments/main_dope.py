@@ -4,7 +4,6 @@ import numpy as np
 import pandas as pd
 
 from datasets.datasets import IHDPDataset
-from models.trainer import train_model
 from models.dope_net import DOPENeuralNet
 
 
@@ -24,27 +23,16 @@ def run_experiment(replication_id, seed):
         activation_after_final_shared_layer=True,
     )
     model.to(device)
-    train_model(
-        model=model,
+    model.fit(
         data=data,
-        loss_fn=model.get_outcome_mse_loss,
         lr=1e-3,
         weight_decay=1e-3,
         batch_size=64,
         epochs=1000,
         patience=20,
+        lambda_lasso=0,
     )
-    model.freeze_shared_trunk()
-    train_model(
-        model=model,
-        data=data,
-        loss_fn=model.get_riesz_loss,
-        lr=1e-3,
-        weight_decay=1e-3,
-        batch_size=64,
-        epochs=1000,
-        patience=20,
-    )
+
     estimates = model.get_estimates(data)
     truth = data.get_truth()
     return {

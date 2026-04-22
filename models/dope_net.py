@@ -1,3 +1,5 @@
+import copy
+
 import torch
 from torch import nn
 
@@ -91,3 +93,47 @@ class DOPENeuralNet(nn.Module):
         correction_terms = riesz_prediction * (outcome - outcome_prediction)
         dr_terms = plugin_terms + correction_terms
         return {"point_estimate": dr_terms.mean().item(), "var_estimate": dr_terms.var().item()}
+
+    def fit(self, data, lr, weight_decay, batch_size, epochs, patience, lambda_lasso=0):
+        self._fit(data, self.get_outcome_mse_loss, lr, weight_decay, batch_size, epochs, patience, lambda_lasso)
+        self.freeze_shared_trunk()
+        self._fit(data, self.get_riesz_loss, lr, weight_decay, batch_size, epochs, patience, lambda_lasso)
+
+    def _fit(self, data, loss_fn, lr, weight_decay, batch_size, epochs, patience, lambda_lasso=0):
+        device = next(self.parameters()).device
+        optimizer = torch.optim.Adam(
+            filter(lambda p: p.requires_grad, self.parameters()), lr=lr, weight_decay=weight_decay
+        )
+        train_data, test_data = data.split_into_train_and_test_sets(train_size=0.8)
+        train_loader = train_data.create_dataloader(batch_size=batch_size)
+        test_loader = test_data.create_dataloader(batch_size=batch_size)
+        best = 1e6
+        counter = 0
+        best_state = copy.deepcopy(self.state_dict())
+        for epoch in range(epochs):
+            self.train()
+            for batch in train_loader:
+                optimizer.zero_grad()
+                batch = tuple(x.to(device) for x in batch)
+                loss = loss_fn(batch)
+                if lambda_lasso > 0:
+                    final_layer_weights = self.shared_trunk.layers[-1].weight
+                    lasso_loss = lambda_lasso * torch.norm(final_layer_weights, dim=1).sum()
+                    loss += lasso_loss
+                loss.backward()
+                optimizer.step()
+            self.eval()
+            with torch.no_grad():
+                test_loss = 0
+                for batch in test_loader:
+                    batch = tuple(x.to(device) for x in batch)
+                    test_loss += loss_fn(batch).item()
+                if test_loss < best:
+                    best = test_loss
+                    counter = 0
+                    best_state = copy.deepcopy(self.state_dict())
+                else:
+                    counter += 1
+                    if counter == patience:
+                        self.load_state_dict(best_state)
+                        break
