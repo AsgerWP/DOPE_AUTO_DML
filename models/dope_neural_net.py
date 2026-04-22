@@ -28,34 +28,6 @@ class DOPENeuralNet(nn.Module):
         else:
             raise ValueError("Invalid branch type. Must be 'T' or 'S'.")
 
-    def outcome_mse_loss(self, batch):
-        covariates, treatment, outcome = batch
-        representation = self.shared_trunk(covariates)
-        outcome_prediction = self.outcome_head(representation, treatment)
-        return nn.functional.mse_loss(outcome_prediction, outcome)
-
-    def riesz_loss(self, batch):
-        covariates, treatment, _ = batch
-        representation = self.shared_trunk(covariates)
-        riesz_prediction = self.riesz_head(representation, treatment)
-        riesz_treatment = self.riesz_head(representation, torch.ones_like(treatment))
-        riesz_control = self.riesz_head(representation, torch.zeros_like(treatment))
-
-        return (riesz_prediction**2 - 2 * (riesz_treatment - riesz_control)).mean()
-
-    def calculate_estimates(self, covariates, treatment, outcome):
-        representation = self.shared_trunk(covariates)
-        outcome_prediction = self.outcome_head(representation, treatment)
-        riesz_prediction = self.riesz_head(representation, treatment)
-        outcome_treatment = self.outcome_head(representation, torch.ones_like(treatment))
-        outcome_control = self.outcome_head(representation, torch.zeros_like(treatment))
-
-        plugin_terms = outcome_treatment - outcome_control
-        correction_terms = riesz_prediction * (outcome - outcome_prediction)
-        dr_terms = plugin_terms + correction_terms
-
-        return {"point_estimate": dr_terms.mean(), "var_estimate": dr_terms.var()}
-
     def freeze_shared_trunk(self):
         for param in self.shared_trunk.parameters():
             param.requires_grad = False
