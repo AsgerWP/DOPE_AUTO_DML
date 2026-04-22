@@ -32,13 +32,13 @@ class DOPENeuralNet(nn.Module):
         for param in self.shared_trunk.parameters():
             param.requires_grad = False
 
-    def outcome_mse_loss(self, batch):
+    def get_outcome_mse_loss(self, batch):
         covariates, treatment, outcome = batch
         representation = self.shared_trunk(covariates)
         outcome_prediction = self.outcome_head(representation, treatment)
         return nn.functional.mse_loss(outcome_prediction, outcome)
 
-    def riesz_loss(self, batch):
+    def get_riesz_loss(self, batch):
         covariates, treatment, _ = batch
         representation = self.shared_trunk(covariates)
         riesz_prediction = self.riesz_head(representation, treatment)
