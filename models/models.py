@@ -1,3 +1,4 @@
+import torch
 from torch import nn
 
 from models.utils import MLP, THead, SHead
@@ -30,3 +31,17 @@ class DOPENeuralNet(nn.Module):
     def freeze_shared_trunk(self):
         for param in self.shared_trunk.parameters():
             param.requires_grad = False
+
+    def outcome_mse_loss(self, batch):
+        covariates, treatment, outcome = batch
+        representation = self.shared_trunk(covariates)
+        outcome_prediction = self.outcome_head(representation, treatment)
+        return nn.functional.mse_loss(outcome_prediction, outcome)
+
+    def riesz_loss(self, batch):
+        covariates, treatment, _ = batch
+        representation = self.shared_trunk(covariates)
+        riesz_prediction = self.riesz_head(representation, treatment)
+        riesz_treatment = self.riesz_head(representation, torch.ones_like(treatment))
+        riesz_control = self.riesz_head(representation, torch.zeros_like(treatment))
+        return (riesz_prediction**2 - 2 * (riesz_treatment - riesz_control)).mean()
