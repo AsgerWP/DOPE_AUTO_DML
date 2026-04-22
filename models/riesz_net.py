@@ -18,7 +18,7 @@ class RieszNet(nn.Module):
     ):
         super().__init__()
         self.shared_trunk = MLP(
-            input_size=n_covariates,
+            input_size=n_covariates + 1,
             hidden_sizes=shared_hidden_layers[:-1],
             output_size=shared_hidden_layers[-1],
             activation=activation,
@@ -33,7 +33,7 @@ class RieszNet(nn.Module):
         )
         self.riesz_branch = nn.Linear(shared_hidden_layers[-1], 1)
         self.loss_weights = loss_weights
-        self.epsilon = torch.parameter(torch.tensor(0.0), requires_grad=True)
+        self.epsilon = nn.Parameter(torch.tensor(0.0), requires_grad=True)
 
     def get_riesz_net_loss(self, batch):
         covariates, treatment, outcome = batch
@@ -49,9 +49,7 @@ class RieszNet(nn.Module):
 
         riesz_loss = (riesz_prediction**2 - 2 * (treated_riesz_prediction - control_riesz_prediction)).mean()
         outcome_loss = nn.functional.mse_loss(outcome_prediction, outcome)
-        tmle_loss = nn.functional.mse_loss(
-            outcome_prediction + self.epsilon * riesz_prediction, outcome_prediction * treatment
-        )
+        tmle_loss = nn.functional.mse_loss(outcome_prediction + self.epsilon * riesz_prediction, outcome)
         return (
             self.loss_weights["riesz"] * riesz_loss
             + self.loss_weights["outcome"] * outcome_loss
