@@ -1,0 +1,59 @@
+import copy
+
+import torch
+from torch import nn
+
+from models.utils import MLP, THead
+
+
+class RieszNet(nn.Module):
+    def __init__(
+        self,
+        n_covariates,
+        shared_hidden_layers,
+        not_shared_hidden_layers,
+        activation,
+        loss_weights,
+        dropout_prob=0,
+    ):
+        super().__init__()
+        self.shared_trunk = MLP(
+            input_size=n_covariates,
+            hidden_sizes=shared_hidden_layers[:-1],
+            output_size=shared_hidden_layers[-1],
+            activation=activation,
+            dropout_prob=dropout_prob,
+            activation_after_final_layer=True,
+        )
+        self.outcome_branch = THead(
+            representation_size=shared_hidden_layers[-1],
+            hidden_sizes=not_shared_hidden_layers,
+            activation=activation,
+            dropout_prob=dropout_prob,
+        )
+        self.riesz_branch = nn.Linear(shared_hidden_layers[-1], 1)
+        self.loss_weights = loss_weights
+        self.epsilon = torch.parameter(torch.tensor(0.0), requires_grad=True)
+
+    def get_riesz_net_loss(self, batch):
+        covariates, treatment, outcome = batch
+
+        representation = self.shared_trunk(torch.cat((covariates, treatment), dim=1))
+        treated_representation = self.shared_trunk(torch.cat((covariates, torch.ones_like(treatment)), dim=1))
+        control_representation = self.shared_trunk(torch.cat((covariates, torch.zeros_like(treatment)), dim=1))
+
+        outcome_prediction = self.outcome_branch(representation, treatment)
+        riesz_prediction = self.riesz_branch(representation, treatment)
+        treated_riesz_prediction = self.riesz_branch(treated_representation, torch.ones_like(treatment))
+        control_riesz_prediction = self.riesz_branch(control_representation, torch.zeros_like(treatment))
+
+        riesz_loss = (riesz_prediction**2 - 2 * (treated_riesz_prediction - control_riesz_prediction)).mean()
+        outcome_loss = nn.functional.mse_loss(outcome_prediction, outcome)
+        tmle_loss = nn.functional.mse_loss(
+            outcome_prediction + self.epsilon * riesz_prediction, outcome_prediction * treatment
+        )
+        return (
+            self.loss_weights["riesz"] * riesz_loss
+            + self.loss_weights["outcome"] * outcome_loss
+            + self.loss_weights["tmle"] * tmle_loss
+        )
