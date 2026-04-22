@@ -2,7 +2,7 @@ import torch
 import copy
 
 
-def train_model(model, data, loss_fn, lr, weight_decay, batch_size, epochs, patience):
+def train_model(model, data, loss_fn, lr, weight_decay, batch_size, epochs, patience, lambda_lasso=0):
     device = next(model.parameters()).device
     optimizer = torch.optim.Adam(
         filter(lambda p: p.requires_grad, model.parameters()), lr=lr, weight_decay=weight_decay
@@ -19,6 +19,10 @@ def train_model(model, data, loss_fn, lr, weight_decay, batch_size, epochs, pati
             optimizer.zero_grad()
             batch = tuple(x.to(device) for x in batch)
             loss = loss_fn(batch)
+            if lambda_lasso > 0:
+                final_layer_weights = model.shared_trunk.layers[-1].weight
+                lasso_loss = lambda_lasso * torch.norm(final_layer_weights, dim=1).sum()
+                loss += lasso_loss
             loss.backward()
             optimizer.step()
         model.eval()
