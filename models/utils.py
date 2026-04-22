@@ -4,11 +4,11 @@ from torch import nn
 
 class SharedTrunk(nn.Module):
     def __init__(
-        self, n_covariates, hidden_sizes, representation_size, activation, dropout_prob, activation_after_representation
+        self, input_size, hidden_sizes, representation_size, activation, dropout_prob, activation_after_representation
     ):
         super().__init__()
         self.layers = MLP(
-            input_size=n_covariates,
+            input_size=input_size,
             hidden_sizes=hidden_sizes,
             output_size=representation_size,
             activation=activation,
