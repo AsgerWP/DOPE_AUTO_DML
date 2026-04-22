@@ -1,6 +1,6 @@
 from torch import nn
 
-from models.utils import SharedTrunk, THead, SHead
+from models.utils import MLP, THead, SHead
 
 
 class DOPENeuralNet(nn.Module):
@@ -15,7 +15,7 @@ class DOPENeuralNet(nn.Module):
         dropout_prob=0,
     ):
         super().__init__()
-        self.shared_trunk = SharedTrunk(
+        self.shared_trunk = MLP(
             n_covariates, shared_hidden_layers, representation_size, activation, dropout_prob, False
         )
         if branch_type == "T":

@@ -2,22 +2,24 @@ import torch
 from torch import nn
 
 
-class SharedTrunk(nn.Module):
-    def __init__(
-        self, input_size, hidden_sizes, representation_size, activation, dropout_prob, activation_after_representation
-    ):
+class MLP(nn.Module):
+    def __init__(self, input_size, hidden_sizes, output_size, activation, dropout_prob, activation_after_final_layer):
         super().__init__()
-        self.layers = MLP(
-            input_size=input_size,
-            hidden_sizes=hidden_sizes,
-            output_size=representation_size,
-            activation=activation,
-            dropout_prob=dropout_prob,
-            activation_after_final_layer=activation_after_representation,
-        )
+        layers = []
+        input_sizes = [input_size] + hidden_sizes
+        output_sizes = hidden_sizes + [output_size]
+        for i, (in_size, out_size) in enumerate(zip(input_sizes, output_sizes)):
+            layers.append(nn.Linear(in_size, out_size))
+            if i + 1 < len(input_sizes):
+                layers.append(activation())
+                if dropout_prob > 0:
+                    layers.append(nn.Dropout(dropout_prob))
+        if activation_after_final_layer:
+            layers.append(activation())
+        self.layers = nn.Sequential(*layers)
 
-    def forward(self, covariates):
-        return self.layers(covariates)
+    def forward(self, x):
+        return self.layers(x)
 
 
 class THead(nn.Module):
@@ -58,24 +60,4 @@ class SHead(nn.Module):
 
     def forward(self, representation, treatment):
         x = torch.cat([representation, treatment], dim=1)
-        return self.layers(x)
-
-
-class MLP(nn.Module):
-    def __init__(self, input_size, hidden_sizes, output_size, activation, dropout_prob, activation_after_final_layer):
-        super().__init__()
-        layers = []
-        input_sizes = [input_size] + hidden_sizes
-        output_sizes = hidden_sizes + [output_size]
-        for i, (in_size, out_size) in enumerate(zip(input_sizes, output_sizes)):
-            layers.append(nn.Linear(in_size, out_size))
-            if i + 1 < len(input_sizes):
-                layers.append(activation())
-                if dropout_prob > 0:
-                    layers.append(nn.Dropout(dropout_prob))
-        if activation_after_final_layer:
-            layers.append(activation())
-        self.layers = nn.Sequential(*layers)
-
-    def forward(self, x):
         return self.layers(x)
