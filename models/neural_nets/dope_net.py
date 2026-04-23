@@ -4,13 +4,12 @@ import torch
 from torch import nn
 
 from models.neural_nets.utils import MLP, TBranch, SBranch
-from models.neural_nets.functionals import MomentFunctional
 
 
 class DOPENeuralNet(nn.Module):
     def __init__(
         self,
-        moment_functional: MomentFunctional,
+        moment_functional,
         n_covariates,
         shared_hidden_layers,
         not_shared_hidden_layers,
@@ -99,10 +98,10 @@ class DOPENeuralNet(nn.Module):
 
         return {"point_estimate": dr_terms.mean().item(), "var_estimate": dr_terms.var().item()}
 
-    def fit_riesz_branch(self, batch_size, data, epochs, lambda_lasso: int, lr, patience, weight_decay):
+    def fit_riesz_branch(self, batch_size, data, epochs, lambda_lasso, lr, patience, weight_decay):
         self._fit(data, self.get_riesz_loss, lr, weight_decay, batch_size, epochs, patience, lambda_lasso)
 
-    def fit_outcome_branch(self, batch_size, data, epochs, lambda_lasso: int, lr, patience, weight_decay):
+    def fit_outcome_branch(self, batch_size, data, epochs, lambda_lasso, lr, patience, weight_decay):
         self._fit(data, self.get_outcome_mse_loss, lr, weight_decay, batch_size, epochs, patience, lambda_lasso)
 
     def _fit(self, data, loss_fn, lr, weight_decay, batch_size, epochs, patience, lambda_lasso=0):
