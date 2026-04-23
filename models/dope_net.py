@@ -73,16 +73,13 @@ class DOPENeuralNet(nn.Module):
 
     def get_outcome_mse_loss(self, batch):
         covariates, treatment, outcome = batch
-        representation = self.shared_trunk(covariates)
-        outcome_prediction = self.outcome_branch(representation, treatment)
-        return nn.functional.mse_loss(outcome_prediction, outcome)
+        return nn.functional.mse_loss(self.outcome_forward(covariates, treatment), outcome)
 
     def get_riesz_loss(self, batch):
         covariates, treatment, _ = batch
-        representation = self.shared_trunk(covariates)
-        riesz_prediction = self.riesz_branch(representation, treatment)
-        riesz_treatment = self.riesz_branch(representation, torch.ones_like(treatment))
-        riesz_control = self.riesz_branch(representation, torch.zeros_like(treatment))
+        riesz_prediction = self.riesz_forward(covariates, treatment)
+        riesz_treatment = self.riesz_forward(covariates, torch.ones_like(treatment))
+        riesz_control = self.riesz_forward(covariates, torch.zeros_like(treatment))
         return (riesz_prediction**2 - 2 * (riesz_treatment - riesz_control)).mean()
 
     def get_estimates(self, data):
@@ -90,14 +87,17 @@ class DOPENeuralNet(nn.Module):
         covariates = data.covariates_tensor().to(device)
         treatment = data.treatments_tensor().to(device)
         outcome = data.outcomes_tensor().to(device)
-        representation = self.shared_trunk(covariates)
-        outcome_prediction = self.outcome_branch(representation, treatment)
-        riesz_prediction = self.riesz_branch(representation, treatment)
-        treated_outcome_prediction = self.outcome_branch(representation, torch.ones_like(treatment))
-        control_outcome_prediction = self.outcome_branch(representation, torch.zeros_like(treatment))
+
+        outcome_prediction = self.outcome_forward(covariates, treatment)
+        treated_outcome_prediction = self.outcome_forward(covariates, torch.ones_like(treatment))
+        control_outcome_prediction = self.outcome_forward(covariates, torch.zeros_like(treatment))
+
+        riesz_prediction = self.riesz_forward(covariates, treatment)
+
         plugin_terms = treated_outcome_prediction - control_outcome_prediction
         correction_terms = riesz_prediction * (outcome - outcome_prediction)
         dr_terms = plugin_terms + correction_terms
+
         return {"point_estimate": dr_terms.mean().item(), "var_estimate": dr_terms.var().item()}
 
     def fit_riesz_branch(self, batch_size, data, epochs, lambda_lasso: int, lr, patience, weight_decay):
