@@ -49,7 +49,7 @@ class RieszNet(nn.Module):
         self.loss_weights = loss_weights
         self.epsilon = nn.Parameter(torch.tensor(0.0), requires_grad=True)
 
-    def outcome_forward(self, covariates, treatment):
+    def uncorrected_outcome_forward(self, covariates, treatment):
         device = next(self.parameters()).device
         covariates = covariates.to(device)
         treatment = treatment.to(device)
@@ -63,18 +63,18 @@ class RieszNet(nn.Module):
         net_input = torch.cat((covariates, treatment), dim=1)
         return self.riesz_branch(self.shared_trunk(net_input.to(device)))
 
-    def corrected_outcome_forward(self, covariates, treatment):
-        return self.outcome_forward(covariates, treatment) + self.epsilon * self.riesz_forward(covariates, treatment)
+    def outcome_forward(self, covariates, treatment):
+        return self.uncorrected_outcome_forward(covariates, treatment) + self.epsilon * self.riesz_forward(covariates, treatment)
 
     def get_riesz_net_loss(self, batch):
         covariates, treatment, outcome = batch
 
-        outcome_loss = nn.functional.mse_loss(self.outcome_forward(covariates, treatment), outcome)
+        outcome_loss = nn.functional.mse_loss(self.uncorrected_outcome_forward(covariates, treatment), outcome)
         riesz_loss = (
             self.riesz_forward(covariates, treatment) ** 2
             - 2 * self.moment_functional(self.riesz_forward, covariates, treatment)
         ).mean()
-        tmle_loss = nn.functional.mse_loss(self.corrected_outcome_forward(covariates, treatment), outcome)
+        tmle_loss = nn.functional.mse_loss(self.outcome_forward(covariates, treatment), outcome)
 
         return (
             self.loss_weights["riesz"] * riesz_loss
@@ -87,9 +87,9 @@ class RieszNet(nn.Module):
         treatment = data.treatments_tensor()
         outcome = data.outcomes_tensor()
 
-        plugin_terms = self.moment_functional(self.corrected_outcome_forward, covariates, treatment)
+        plugin_terms = self.moment_functional(self.outcome_forward, covariates, treatment)
         correction_terms = self.riesz_forward(covariates, treatment) * (
-            outcome - self.corrected_outcome_forward(covariates, treatment)
+            outcome - self.outcome_forward(covariates, treatment)
         )
         dr_terms = plugin_terms + correction_terms
         return {"point_estimate": dr_terms.mean().item(), "var_estimate": dr_terms.var().item()}
