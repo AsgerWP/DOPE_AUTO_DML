@@ -116,7 +116,7 @@ class RieszNet(nn.Module):
             cooldown=2,
             min_lr=1e-6,
         )
-        train_data, test_data = data.split_into_train_and_test_sets(train_size=0.8)
+        train_data, test_data = data.split_into_train_and_validation_sets(train_size=0.8)
         train_loader = train_data.create_dataloader(batch_size=batch_size)
         best = 1e6
         counter = 0
