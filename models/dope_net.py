@@ -61,6 +61,12 @@ class DOPENeuralNet(nn.Module):
         else:
             raise ValueError("Invalid branch type. Must be 'T' or 'S'.")
 
+    def outcome_forward(self, covariates, treatment):
+        return self.outcome_branch(self.shared_trunk(covariates), treatment)
+
+    def riesz_forward(self, covariates, treatment):
+        return self.riesz_branch(self.shared_trunk(covariates), treatment)
+
     def freeze_shared_trunk(self):
         for param in self.shared_trunk.parameters():
             param.requires_grad = False
