@@ -52,7 +52,7 @@ def _print_diagnostics(results):
 
 if __name__ == "__main__":
     results = []
-    output_file = "ihdp_results.csv"
+    output_file = "results/results.csv"
     for replication_id in range(1000):
         result = run_experiment(replication_id=replication_id + 1, seed=replication_id + 1)
         file_exists = os.path.isfile(output_file)
