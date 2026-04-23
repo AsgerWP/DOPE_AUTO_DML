@@ -4,11 +4,13 @@ import torch
 from torch import nn
 
 from models.utils import MLP, TBranch, SBranch
+from models.functionals import MomentFunctional
 
 
 class DOPENeuralNet(nn.Module):
     def __init__(
         self,
+        moment_functional: MomentFunctional,
         n_covariates,
         shared_hidden_layers,
         not_shared_hidden_layers,
@@ -19,6 +21,7 @@ class DOPENeuralNet(nn.Module):
         dropout_prob=0,
     ):
         super().__init__()
+        self.moment_functional = moment_functional
         self.shared_trunk = MLP(
             input_size=n_covariates,
             hidden_sizes=shared_hidden_layers[:-1],
@@ -77,10 +80,10 @@ class DOPENeuralNet(nn.Module):
 
     def get_riesz_loss(self, batch):
         covariates, treatment, _ = batch
-        riesz_prediction = self.riesz_forward(covariates, treatment)
-        riesz_treatment = self.riesz_forward(covariates, torch.ones_like(treatment))
-        riesz_control = self.riesz_forward(covariates, torch.zeros_like(treatment))
-        return (riesz_prediction**2 - 2 * (riesz_treatment - riesz_control)).mean()
+        return (
+            self.riesz_forward(covariates, treatment) ** 2
+            - 2 * self.moment_functional(self.riesz_forward, covariates, treatment)
+        ).mean()
 
     def get_estimates(self, data):
         device = next(self.parameters()).device
@@ -88,14 +91,10 @@ class DOPENeuralNet(nn.Module):
         treatment = data.treatments_tensor().to(device)
         outcome = data.outcomes_tensor().to(device)
 
-        outcome_prediction = self.outcome_forward(covariates, treatment)
-        treated_outcome_prediction = self.outcome_forward(covariates, torch.ones_like(treatment))
-        control_outcome_prediction = self.outcome_forward(covariates, torch.zeros_like(treatment))
-
-        riesz_prediction = self.riesz_forward(covariates, treatment)
-
-        plugin_terms = treated_outcome_prediction - control_outcome_prediction
-        correction_terms = riesz_prediction * (outcome - outcome_prediction)
+        plugin_terms = self.moment_functional(self.outcome_forward, covariates, treatment)
+        correction_terms = self.riesz_forward(covariates, treatment) * (
+            outcome - self.outcome_forward(covariates, treatment)
+        )
         dr_terms = plugin_terms + correction_terms
 
         return {"point_estimate": dr_terms.mean().item(), "var_estimate": dr_terms.var().item()}

@@ -5,6 +5,7 @@ import pandas as pd
 
 from datasets.datasets import IHDPDataset
 from models.dope_net import DOPENeuralNet
+from models.functionals import AverageTreatmentEffect
 
 
 def run_experiment(replication_id, seed):
@@ -13,7 +14,9 @@ def run_experiment(replication_id, seed):
     np.random.seed(seed)
 
     data = IHDPDataset.load_replication(replication_id=replication_id)
+    functional = AverageTreatmentEffect()
     model = DOPENeuralNet(
+        moment_functional=functional,
         n_covariates=25,
         shared_hidden_layers=[100, 100, 100],
         not_shared_hidden_layers=[100, 100],
