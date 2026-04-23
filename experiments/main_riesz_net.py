@@ -25,7 +25,7 @@ def run_experiment(replication_id, seed):
         data=data,
         lr=1e-3,
         weight_decay=1e-3,
-        batch_size=64,
+        batch_size=256,
         epochs=1000,
         patience=30,
     )
