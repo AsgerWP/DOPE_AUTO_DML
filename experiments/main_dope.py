@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 
 from datasets.datasets import IHDPDataset
-from models.neural_nets.dope_net import DOPENeuralNet
+from models.neural_nets.neural_net import DOPENeuralNet
 from models.neural_nets.functionals import AverageTreatmentEffect
 
 
