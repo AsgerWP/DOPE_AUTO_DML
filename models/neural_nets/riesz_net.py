@@ -82,7 +82,7 @@ class RieszNet(NeuralNetwork):
             + self.loss_weights["tmle"] * tmle_loss
         )
 
-    def fit(self, data, lr, weight_decay, batch_size, epochs, patience, lambda_lasso=0):
+    def fit(self, data, lr=1e-3, weight_decay=1e-3, batch_size=1000, epochs=1000, patience=30, lambda_lasso=0):
         self._fit(
             data=data,
             loss_fn=self.get_riesz_net_loss,

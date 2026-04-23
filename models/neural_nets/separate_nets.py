@@ -91,7 +91,7 @@ class SeparateNeuralNets(NeuralNetwork):
             - 2 * self.moment_functional(self.riesz_forward, covariates, treatment)
         ).mean()
 
-    def fit_riesz_branch(self, batch_size, data, epochs, lr, patience, weight_decay, lambda_lasso=0):
+    def fit_riesz_branch(self, data, batch_size=1000, epochs=1000, lr=1e-3, patience=30, weight_decay=1e-3, lambda_lasso=0):
         self._fit(
             data=data,
             loss_fn=self.get_riesz_loss,
@@ -104,7 +104,7 @@ class SeparateNeuralNets(NeuralNetwork):
             lambda_lasso=lambda_lasso,
         )
 
-    def fit_outcome_branch(self, batch_size, data, epochs, lr, patience, weight_decay, lambda_lasso=0):
+    def fit_outcome_branch(self, data, batch_size=64, epochs=1000, lr=1e-3, patience=30, weight_decay=1e-3, lambda_lasso=0):
         self._fit(
             data=data,
             loss_fn=self.get_outcome_mse_loss,
