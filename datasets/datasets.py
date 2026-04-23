@@ -5,11 +5,12 @@ from torch.utils.data import DataLoader, TensorDataset
 
 
 class ATEDataset:
-    def __init__(self, data, treatment_column, outcome_column, covariate_columns):
+    def __init__(self, data, treatment_column, outcome_column, covariate_columns, truth=None):
         self.data = data
         self.treatment_column = treatment_column
         self.outcome_column = outcome_column
         self.covariate_columns = covariate_columns
+        self.truth = truth
 
     def split_into_train_and_test_sets(self, train_size):
         train_data, test_data = train_test_split(
@@ -21,12 +22,14 @@ class ATEDataset:
                 treatment_column=self.treatment_column,
                 outcome_column=self.outcome_column,
                 covariate_columns=self.covariate_columns,
+                truth=self.truth,
             ),
             ATEDataset(
                 data=test_data,
                 treatment_column=self.treatment_column,
                 outcome_column=self.outcome_column,
                 covariate_columns=self.covariate_columns,
+                truth=self.truth,
             ),
         )
 
@@ -50,12 +53,10 @@ class ATEDataset:
 class IHDPDataset(ATEDataset):
     def __init__(self, data, treatment_column, outcome_column, covariate_columns):
         super().__init__(data, treatment_column, outcome_column, covariate_columns)
+        self.truth = np.mean(self.data[:, 4] - self.data[:, 3])
 
     @classmethod
     def load_replication(cls, replication_id):
         path = "datasets/ihdp_replications/ihdp_" + str(replication_id) + ".csv"
         data = np.loadtxt(path)
         return cls(data=data, treatment_column=0, outcome_column=1, covariate_columns=[i + 5 for i in range(25)])
-
-    def get_truth(self):
-        return np.mean(self.data[:, 4] - self.data[:, 3])

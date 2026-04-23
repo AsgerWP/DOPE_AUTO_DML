@@ -30,7 +30,7 @@ def run_experiment(replication_id, seed):
         patience=30,
     )
     estimates = model.get_estimates(data)
-    truth = data.get_truth()
+    truth = data.truth
     return {
         "replication_id": replication_id,
         "seed": seed,
