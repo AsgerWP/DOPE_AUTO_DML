@@ -3,30 +3,32 @@ import copy
 import torch
 from torch import nn
 
-from models.utils import MLP, TBranch, SBranch
+from models.neural_nets.utils import MLP, TBranch, SBranch
+from models.neural_nets.functionals import MomentFunctional
 
 
-class RieszNet(nn.Module):
+class DOPENeuralNet(nn.Module):
     def __init__(
         self,
-        moment_functional,
-        outcome_branch_type,
+        moment_functional: MomentFunctional,
         n_covariates,
         shared_hidden_layers,
         not_shared_hidden_layers,
         activation,
-        loss_weights,
+        outcome_branch_type,
+        riesz_branch_type,
+        activation_after_final_shared_layer,
         dropout_prob=0,
     ):
         super().__init__()
         self.moment_functional = moment_functional
         self.shared_trunk = MLP(
-            input_size=n_covariates + 1,
+            input_size=n_covariates,
             hidden_sizes=shared_hidden_layers[:-1],
             output_size=shared_hidden_layers[-1],
             activation=activation,
             dropout_prob=dropout_prob,
-            activation_after_final_layer=True,
+            activation_after_final_layer=activation_after_final_shared_layer,
         )
         if outcome_branch_type == "T":
             self.outcome_branch = TBranch(
@@ -45,36 +47,43 @@ class RieszNet(nn.Module):
         else:
             raise ValueError("Invalid branch type. Must be 'T' or 'S'.")
 
-        self.riesz_branch = nn.Linear(shared_hidden_layers[-1], 1)
-        self.loss_weights = loss_weights
-        self.epsilon = nn.Parameter(torch.tensor(0.0), requires_grad=True)
+        if riesz_branch_type == "T":
+            self.riesz_branch = TBranch(
+                representation_size=shared_hidden_layers[-1],
+                hidden_sizes=not_shared_hidden_layers,
+                activation=activation,
+                dropout_prob=dropout_prob,
+            )
+        elif riesz_branch_type == "S":
+            self.riesz_branch = SBranch(
+                representation_size=shared_hidden_layers[-1],
+                hidden_sizes=not_shared_hidden_layers,
+                activation=activation,
+                dropout_prob=dropout_prob,
+            )
+        else:
+            raise ValueError("Invalid branch type. Must be 'T' or 'S'.")
 
     def outcome_forward(self, covariates, treatment):
-        net_input = torch.cat((covariates, treatment), dim=1)
-        return self.outcome_branch(self.shared_trunk(net_input), treatment)
+        return self.outcome_branch(self.shared_trunk(covariates), treatment)
 
     def riesz_forward(self, covariates, treatment):
-        net_input = torch.cat((covariates, treatment), dim=1)
-        return self.riesz_branch(self.shared_trunk(net_input))
+        return self.riesz_branch(self.shared_trunk(covariates), treatment)
 
-    def corrected_outcome_forward(self, covariates, treatment):
-        return self.outcome_forward(covariates, treatment) + self.epsilon * self.riesz_forward(covariates, treatment)
+    def freeze_shared_trunk(self):
+        for param in self.shared_trunk.parameters():
+            param.requires_grad = False
 
-    def get_riesz_net_loss(self, batch):
+    def get_outcome_mse_loss(self, batch):
         covariates, treatment, outcome = batch
+        return nn.functional.mse_loss(self.outcome_forward(covariates, treatment), outcome)
 
-        outcome_loss = nn.functional.mse_loss(self.outcome_forward(covariates, treatment), outcome)
-        riesz_loss = (
+    def get_riesz_loss(self, batch):
+        covariates, treatment, _ = batch
+        return (
             self.riesz_forward(covariates, treatment) ** 2
             - 2 * self.moment_functional(self.riesz_forward, covariates, treatment)
         ).mean()
-        tmle_loss = nn.functional.mse_loss(self.corrected_outcome_forward(covariates, treatment), outcome)
-
-        return (
-            self.loss_weights["riesz"] * riesz_loss
-            + self.loss_weights["outcome"] * outcome_loss
-            + self.loss_weights["tmle"] * tmle_loss
-        )
 
     def get_estimates(self, data):
         device = next(self.parameters()).device
@@ -82,34 +91,25 @@ class RieszNet(nn.Module):
         treatment = data.treatments_tensor().to(device)
         outcome = data.outcomes_tensor().to(device)
 
-        plugin_terms = self.moment_functional(self.corrected_outcome_forward, covariates, treatment)
+        plugin_terms = self.moment_functional(self.outcome_forward, covariates, treatment)
         correction_terms = self.riesz_forward(covariates, treatment) * (
-            outcome - self.corrected_outcome_forward(covariates, treatment)
+            outcome - self.outcome_forward(covariates, treatment)
         )
         dr_terms = plugin_terms + correction_terms
+
         return {"point_estimate": dr_terms.mean().item(), "var_estimate": dr_terms.var().item()}
 
-    def fit(self, data, lr, weight_decay, batch_size, epochs, patience):
+    def fit_riesz_branch(self, batch_size, data, epochs, lambda_lasso: int, lr, patience, weight_decay):
+        self._fit(data, self.get_riesz_loss, lr, weight_decay, batch_size, epochs, patience, lambda_lasso)
+
+    def fit_outcome_branch(self, batch_size, data, epochs, lambda_lasso: int, lr, patience, weight_decay):
+        self._fit(data, self.get_outcome_mse_loss, lr, weight_decay, batch_size, epochs, patience, lambda_lasso)
+
+    def _fit(self, data, loss_fn, lr, weight_decay, batch_size, epochs, patience, lambda_lasso=0):
         device = next(self.parameters()).device
-        decay_params = []
-        no_decay_params = []
-
-        for name, param in self.named_parameters():
-            if not param.requires_grad:
-                continue
-            if name == "epsilon":
-                no_decay_params.append(param)
-            else:
-                decay_params.append(param)
-
         optimizer = torch.optim.Adam(
-            [
-                {"params": decay_params, "weight_decay": weight_decay},
-                {"params": no_decay_params, "weight_decay": 0.0},
-            ],
-            lr=lr,
+            filter(lambda p: p.requires_grad, self.parameters()), lr=lr, weight_decay=weight_decay
         )
-
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
             optimizer,
             mode="min",
@@ -130,12 +130,16 @@ class RieszNet(nn.Module):
             for batch in train_loader:
                 optimizer.zero_grad()
                 batch = tuple(x.to(device) for x in batch)
-                loss = self.get_riesz_net_loss(batch)
+                loss = loss_fn(batch)
+                if lambda_lasso > 0:
+                    final_layer_weights = self.shared_trunk.layers[-1].weight
+                    lasso_loss = lambda_lasso * torch.norm(final_layer_weights, dim=1).sum()
+                    loss += lasso_loss
                 loss.backward()
                 optimizer.step()
             self.eval()
             with torch.no_grad():
-                val_loss = self.get_riesz_net_loss(
+                val_loss = loss_fn(
                     (
                         val_data.covariates_tensor().to(device),
                         val_data.treatments_tensor().to(device),

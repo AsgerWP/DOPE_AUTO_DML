@@ -4,8 +4,8 @@ import numpy as np
 import pandas as pd
 
 from datasets.datasets import IHDPDataset
-from models.dope_net import DOPENeuralNet
-from models.functionals import AverageTreatmentEffect
+from models.neural_nets.dope_net import DOPENeuralNet
+from models.neural_nets.functionals import AverageTreatmentEffect
 
 
 def run_experiment(replication_id, seed):

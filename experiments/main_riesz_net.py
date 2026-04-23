@@ -4,8 +4,8 @@ import numpy as np
 import pandas as pd
 
 from datasets.datasets import IHDPDataset
-from models.riesz_net import RieszNet
-from models.functionals import AverageTreatmentEffect
+from models.neural_nets.riesz_net import RieszNet
+from models.neural_nets.functionals import AverageTreatmentEffect
 
 
 def run_experiment(replication_id, seed):
