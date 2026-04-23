@@ -25,14 +25,7 @@ def run_experiment(replication_id, seed):
         loss_weights={"riesz": 0.1, "outcome": 1, "tmle": 1},
     )
     model.to(device)
-    model.fit(
-        data=data,
-        lr=1e-3,
-        weight_decay=1e-3,
-        batch_size=1000,
-        epochs=1000,
-        patience=30,
-    )
+    model.fit(data=data)
     estimates = model.get_estimates(data)
     truth = data.truth
     return {

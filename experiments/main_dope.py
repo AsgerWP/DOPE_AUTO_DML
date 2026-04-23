@@ -26,25 +26,9 @@ def run_experiment(replication_id, seed):
         activation_after_final_shared_layer=True,
     )
     model.to(device)
-    model.fit_outcome_branch(
-        data=data,
-        lr=1e-3,
-        weight_decay=1e-3,
-        batch_size=64,
-        epochs=1000,
-        patience=30,
-        lambda_lasso=0,
-    )
+    model.fit_outcome_branch(data=data)
     model.freeze_shared_trunk()
-    model.fit_riesz_branch(
-        data=data,
-        lr=1e-3,
-        weight_decay=1e-3,
-        batch_size=1000,
-        epochs=1000,
-        patience=30,
-        lambda_lasso=0,
-    )
+    model.fit_riesz_branch(data=data)
 
     estimates = model.get_estimates(data)
     truth = data.truth
