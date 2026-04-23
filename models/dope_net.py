@@ -115,7 +115,7 @@ class DOPENeuralNet(nn.Module):
             cooldown=2,
             min_lr=1e-6,
         )
-        train_data, test_data = data.split_into_train_and_validation_sets(train_size=0.8)
+        train_data, val_data = data.split_into_train_and_validation_sets(train_size=0.8)
         train_loader = train_data.create_dataloader(batch_size=batch_size)
         best = 1e6
         counter = 0
@@ -134,16 +134,16 @@ class DOPENeuralNet(nn.Module):
                 optimizer.step()
             self.eval()
             with torch.no_grad():
-                test_loss = loss_fn(
+                val_loss = loss_fn(
                     (
-                        test_data.covariates_tensor().to(device),
-                        test_data.treatments_tensor().to(device),
-                        test_data.outcomes_tensor().to(device),
+                        val_data.covariates_tensor().to(device),
+                        val_data.treatments_tensor().to(device),
+                        val_data.outcomes_tensor().to(device),
                     )
                 )
-                scheduler.step(test_loss)
-                if test_loss.item() < best:
-                    best = test_loss.item()
+                scheduler.step(val_loss)
+                if val_loss.item() < best:
+                    best = val_loss.item()
                     counter = 0
                     best_state = copy.deepcopy(self.state_dict())
                 else:
