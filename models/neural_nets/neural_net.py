@@ -32,7 +32,7 @@ class NeuralNetwork(nn.Module, ABC):
 
         return {"point_estimate": dr_terms.mean().item(), "var_estimate": dr_terms.var().item()}
 
-    def _fit(self, data, loss_fn, trunk, lr, weight_decay, batch_size, epochs, patience, lambda_lasso=0):
+    def _fit(self, data, loss_fn, trunk, lr, weight_decay, batch_size, epochs, patience, lambda_lasso):
         decay_params = []
         no_decay_params = []
         for name, param in self.named_parameters():
