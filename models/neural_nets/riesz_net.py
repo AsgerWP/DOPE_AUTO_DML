@@ -26,14 +26,14 @@ class RieszNet(NeuralNetwork):
             dropout_prob=dropout_prob,
             activation_after_final_layer=True,
         )
-        if outcome_branch_type == "T":
+        if outcome_branch_type == "t_learner":
             self.outcome_branch = TBranch(
                 representation_size=shared_hidden_layers[-1],
                 hidden_sizes=not_shared_hidden_layers,
                 activation=activation,
                 dropout_prob=dropout_prob,
             )
-        elif outcome_branch_type == "S":
+        elif outcome_branch_type == "s_learner":
             self.outcome_branch = SBranch(
                 representation_size=shared_hidden_layers[-1],
                 hidden_sizes=not_shared_hidden_layers,
@@ -41,7 +41,7 @@ class RieszNet(NeuralNetwork):
                 dropout_prob=dropout_prob,
             )
         else:
-            raise ValueError("Invalid branch type. Must be 'T' or 'S'.")
+            raise ValueError("Invalid branch type. Must be 't_learner' or 's_learner'.")
 
         self.riesz_branch = nn.Linear(shared_hidden_layers[-1], 1)
         self.loss_weights = loss_weights

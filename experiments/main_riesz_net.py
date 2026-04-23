@@ -18,7 +18,7 @@ def run_experiment(replication_id, seed):
     model = RieszNet(
         moment_functional=functional,
         n_covariates=25,
-        outcome_branch_type="T",
+        outcome_branch_type="t_learner",
         shared_hidden_layers=[100, 100, 100],
         not_shared_hidden_layers=[100, 100],
         activation=torch.nn.ELU,

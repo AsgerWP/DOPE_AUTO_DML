@@ -26,14 +26,14 @@ class DOPENeuralNet(NeuralNetwork):
             dropout_prob=dropout_prob,
             activation_after_final_layer=activation_after_final_shared_layer,
         )
-        if outcome_branch_type == "T":
+        if outcome_branch_type == "t_learner":
             self.outcome_branch = TBranch(
                 representation_size=shared_hidden_layers[-1],
                 hidden_sizes=not_shared_hidden_layers,
                 activation=activation,
                 dropout_prob=dropout_prob,
             )
-        elif outcome_branch_type == "S":
+        elif outcome_branch_type == "s_learner":
             self.outcome_branch = SBranch(
                 representation_size=shared_hidden_layers[-1],
                 hidden_sizes=not_shared_hidden_layers,
@@ -41,16 +41,16 @@ class DOPENeuralNet(NeuralNetwork):
                 dropout_prob=dropout_prob,
             )
         else:
-            raise ValueError("Invalid branch type. Must be 'T' or 'S'.")
+            raise ValueError("Invalid branch type. Must be 't_learner' or 's_learner'.")
 
-        if riesz_branch_type == "T":
+        if riesz_branch_type == "t_learner":
             self.riesz_branch = TBranch(
                 representation_size=shared_hidden_layers[-1],
                 hidden_sizes=not_shared_hidden_layers,
                 activation=activation,
                 dropout_prob=dropout_prob,
             )
-        elif riesz_branch_type == "S":
+        elif riesz_branch_type == "s_learner":
             self.riesz_branch = SBranch(
                 representation_size=shared_hidden_layers[-1],
                 hidden_sizes=not_shared_hidden_layers,
@@ -58,7 +58,7 @@ class DOPENeuralNet(NeuralNetwork):
                 dropout_prob=dropout_prob,
             )
         else:
-            raise ValueError("Invalid branch type. Must be 'T' or 'S'.")
+            raise ValueError("Invalid branch type. Must be 't_learner' or 's_learner'.")
 
     def outcome_forward(self, covariates, treatment):
         device = next(self.parameters()).device

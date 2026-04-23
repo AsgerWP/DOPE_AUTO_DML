@@ -21,8 +21,8 @@ def run_experiment(replication_id, seed):
         shared_hidden_layers=[100, 100, 100],
         not_shared_hidden_layers=[100, 100],
         activation=torch.nn.ELU,
-        outcome_branch_type="T",
-        riesz_branch_type="S",
+        outcome_branch_type="t_learner",
+        riesz_branch_type="s_learner",
         activation_after_final_shared_layer=True,
     )
     model.to(device)
