@@ -3,13 +3,14 @@ import copy
 import torch
 from torch import nn
 
-from models.utils import MLP, TBranch
+from models.utils import MLP, TBranch, SBranch
 
 
 class RieszNet(nn.Module):
     def __init__(
         self,
         moment_functional,
+        outcome_branch_type,
         n_covariates,
         shared_hidden_layers,
         not_shared_hidden_layers,
@@ -27,12 +28,23 @@ class RieszNet(nn.Module):
             dropout_prob=dropout_prob,
             activation_after_final_layer=True,
         )
-        self.outcome_branch = TBranch(
-            representation_size=shared_hidden_layers[-1],
-            hidden_sizes=not_shared_hidden_layers,
-            activation=activation,
-            dropout_prob=dropout_prob,
-        )
+        if outcome_branch_type == "T":
+            self.outcome_branch = TBranch(
+                representation_size=shared_hidden_layers[-1],
+                hidden_sizes=not_shared_hidden_layers,
+                activation=activation,
+                dropout_prob=dropout_prob,
+            )
+        elif outcome_branch_type == "S":
+            self.outcome_branch = SBranch(
+                representation_size=shared_hidden_layers[-1],
+                hidden_sizes=not_shared_hidden_layers,
+                activation=activation,
+                dropout_prob=dropout_prob,
+            )
+        else:
+            raise ValueError("Invalid branch type. Must be 'T' or 'S'.")
+
         self.riesz_branch = nn.Linear(shared_hidden_layers[-1], 1)
         self.loss_weights = loss_weights
         self.epsilon = nn.Parameter(torch.tensor(0.0), requires_grad=True)
