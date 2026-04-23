@@ -50,12 +50,18 @@ class RieszNet(nn.Module):
         self.epsilon = nn.Parameter(torch.tensor(0.0), requires_grad=True)
 
     def outcome_forward(self, covariates, treatment):
+        device = next(self.parameters()).device
+        covariates = covariates.to(device)
+        treatment = treatment.to(device)
         net_input = torch.cat((covariates, treatment), dim=1)
         return self.outcome_branch(self.shared_trunk(net_input), treatment)
 
     def riesz_forward(self, covariates, treatment):
+        device = next(self.parameters()).device
+        covariates = covariates.to(device)
+        treatment = treatment.to(device)
         net_input = torch.cat((covariates, treatment), dim=1)
-        return self.riesz_branch(self.shared_trunk(net_input))
+        return self.riesz_branch(self.shared_trunk(net_input.to(device)))
 
     def corrected_outcome_forward(self, covariates, treatment):
         return self.outcome_forward(covariates, treatment) + self.epsilon * self.riesz_forward(covariates, treatment)
@@ -77,10 +83,9 @@ class RieszNet(nn.Module):
         )
 
     def get_estimates(self, data):
-        device = next(self.parameters()).device
-        covariates = data.covariates_tensor().to(device)
-        treatment = data.treatments_tensor().to(device)
-        outcome = data.outcomes_tensor().to(device)
+        covariates = data.covariates_tensor()
+        treatment = data.treatments_tensor()
+        outcome = data.outcomes_tensor()
 
         plugin_terms = self.moment_functional(self.corrected_outcome_forward, covariates, treatment)
         correction_terms = self.riesz_forward(covariates, treatment) * (
@@ -90,7 +95,6 @@ class RieszNet(nn.Module):
         return {"point_estimate": dr_terms.mean().item(), "var_estimate": dr_terms.var().item()}
 
     def fit(self, data, lr, weight_decay, batch_size, epochs, patience):
-        device = next(self.parameters()).device
         decay_params = []
         no_decay_params = []
 
@@ -129,7 +133,6 @@ class RieszNet(nn.Module):
             self.train()
             for batch in train_loader:
                 optimizer.zero_grad()
-                batch = tuple(x.to(device) for x in batch)
                 loss = self.get_riesz_net_loss(batch)
                 loss.backward()
                 optimizer.step()
@@ -137,9 +140,9 @@ class RieszNet(nn.Module):
             with torch.no_grad():
                 val_loss = self.get_riesz_net_loss(
                     (
-                        val_data.covariates_tensor().to(device),
-                        val_data.treatments_tensor().to(device),
-                        val_data.outcomes_tensor().to(device),
+                        val_data.covariates_tensor(),
+                        val_data.treatments_tensor(),
+                        val_data.outcomes_tensor(),
                     )
                 )
                 scheduler.step(val_loss)

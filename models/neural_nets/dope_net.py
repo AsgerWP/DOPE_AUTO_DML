@@ -64,9 +64,15 @@ class DOPENeuralNet(nn.Module):
             raise ValueError("Invalid branch type. Must be 'T' or 'S'.")
 
     def outcome_forward(self, covariates, treatment):
+        device = next(self.parameters()).device
+        covariates = covariates.to(device)
+        treatment = treatment.to(device)
         return self.outcome_branch(self.shared_trunk(covariates), treatment)
 
     def riesz_forward(self, covariates, treatment):
+        device = next(self.parameters()).device
+        covariates = covariates.to(device)
+        treatment = treatment.to(device)
         return self.riesz_branch(self.shared_trunk(covariates), treatment)
 
     def freeze_shared_trunk(self):
@@ -85,10 +91,9 @@ class DOPENeuralNet(nn.Module):
         ).mean()
 
     def get_estimates(self, data):
-        device = next(self.parameters()).device
-        covariates = data.covariates_tensor().to(device)
-        treatment = data.treatments_tensor().to(device)
-        outcome = data.outcomes_tensor().to(device)
+        covariates = data.covariates_tensor()
+        treatment = data.treatments_tensor()
+        outcome = data.outcomes_tensor()
 
         plugin_terms = self.moment_functional(self.outcome_forward, covariates, treatment)
         correction_terms = self.riesz_forward(covariates, treatment) * (
@@ -105,7 +110,6 @@ class DOPENeuralNet(nn.Module):
         self._fit(data, self.get_outcome_mse_loss, lr, weight_decay, batch_size, epochs, patience, lambda_lasso)
 
     def _fit(self, data, loss_fn, lr, weight_decay, batch_size, epochs, patience, lambda_lasso=0):
-        device = next(self.parameters()).device
         optimizer = torch.optim.Adam(
             filter(lambda p: p.requires_grad, self.parameters()), lr=lr, weight_decay=weight_decay
         )
@@ -128,7 +132,6 @@ class DOPENeuralNet(nn.Module):
             self.train()
             for batch in train_loader:
                 optimizer.zero_grad()
-                batch = tuple(x.to(device) for x in batch)
                 loss = loss_fn(batch)
                 if lambda_lasso > 0:
                     final_layer_weights = self.shared_trunk.layers[-1].weight
@@ -140,9 +143,9 @@ class DOPENeuralNet(nn.Module):
             with torch.no_grad():
                 val_loss = loss_fn(
                     (
-                        val_data.covariates_tensor().to(device),
-                        val_data.treatments_tensor().to(device),
-                        val_data.outcomes_tensor().to(device),
+                        val_data.covariates_tensor(),
+                        val_data.treatments_tensor(),
+                        val_data.outcomes_tensor(),
                     )
                 )
                 scheduler.step(val_loss)

@@ -72,9 +72,15 @@ class SeparateNeuralNets(nn.Module):
             raise ValueError("Invalid branch type. Must be 'T' or 'S'.")
 
     def outcome_forward(self, covariates, treatment):
+        device = next(self.parameters()).device
+        covariates = covariates.to(device)
+        treatment = treatment.to(device)
         return self.outcome_branch(self.outcome_trunk(covariates), treatment)
 
     def riesz_forward(self, covariates, treatment):
+        device = next(self.parameters()).device
+        treatment = treatment.to(device)
+        covariates = covariates.to(device)
         return self.riesz_branch(self.riesz_trunk(covariates), treatment)
 
     def get_outcome_mse_loss(self, batch):
@@ -89,10 +95,9 @@ class SeparateNeuralNets(nn.Module):
         ).mean()
 
     def get_estimates(self, data):
-        device = next(self.parameters()).device
-        covariates = data.covariates_tensor().to(device)
-        treatment = data.treatments_tensor().to(device)
-        outcome = data.outcomes_tensor().to(device)
+        covariates = data.covariates_tensor()
+        treatment = data.treatments_tensor()
+        outcome = data.outcomes_tensor()
 
         plugin_terms = self.moment_functional(self.outcome_forward, covariates, treatment)
         correction_terms = self.riesz_forward(covariates, treatment) * (
@@ -132,7 +137,6 @@ class SeparateNeuralNets(nn.Module):
             self.train()
             for batch in train_loader:
                 optimizer.zero_grad()
-                batch = tuple(x.to(device) for x in batch)
                 loss = loss_fn(batch)
                 loss.backward()
                 optimizer.step()
@@ -140,9 +144,9 @@ class SeparateNeuralNets(nn.Module):
             with torch.no_grad():
                 val_loss = loss_fn(
                     (
-                        val_data.covariates_tensor().to(device),
-                        val_data.treatments_tensor().to(device),
-                        val_data.outcomes_tensor().to(device),
+                        val_data.covariates_tensor(),
+                        val_data.treatments_tensor(),
+                        val_data.outcomes_tensor(),
                     )
                 )
                 scheduler.step(val_loss)
