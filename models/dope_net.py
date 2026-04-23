@@ -3,7 +3,7 @@ import copy
 import torch
 from torch import nn
 
-from models.utils import MLP, THead, SHead
+from models.utils import MLP, TBranch, SBranch
 
 
 class DOPENeuralNet(nn.Module):
@@ -28,14 +28,14 @@ class DOPENeuralNet(nn.Module):
             activation_after_final_layer=activation_after_final_shared_layer,
         )
         if outcome_branch_type == "T":
-            self.outcome_branch = THead(
+            self.outcome_branch = TBranch(
                 representation_size=shared_hidden_layers[-1],
                 hidden_sizes=not_shared_hidden_layers,
                 activation=activation,
                 dropout_prob=dropout_prob,
             )
         elif outcome_branch_type == "S":
-            self.outcome_branch = SHead(
+            self.outcome_branch = SBranch(
                 representation_size=shared_hidden_layers[-1],
                 hidden_sizes=not_shared_hidden_layers,
                 activation=activation,
@@ -45,14 +45,14 @@ class DOPENeuralNet(nn.Module):
             raise ValueError("Invalid branch type. Must be 'T' or 'S'.")
 
         if riesz_branch_type == "T":
-            self.riesz_branch = THead(
+            self.riesz_branch = TBranch(
                 representation_size=shared_hidden_layers[-1],
                 hidden_sizes=not_shared_hidden_layers,
                 activation=activation,
                 dropout_prob=dropout_prob,
             )
         elif riesz_branch_type == "S":
-            self.riesz_branch = SHead(
+            self.riesz_branch = SBranch(
                 representation_size=shared_hidden_layers[-1],
                 hidden_sizes=not_shared_hidden_layers,
                 activation=activation,

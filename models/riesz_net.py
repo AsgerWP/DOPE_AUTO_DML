@@ -3,7 +3,7 @@ import copy
 import torch
 from torch import nn
 
-from models.utils import MLP, THead
+from models.utils import MLP, TBranch
 
 
 class RieszNet(nn.Module):
@@ -25,7 +25,7 @@ class RieszNet(nn.Module):
             dropout_prob=dropout_prob,
             activation_after_final_layer=True,
         )
-        self.outcome_branch = THead(
+        self.outcome_branch = TBranch(
             representation_size=shared_hidden_layers[-1],
             hidden_sizes=not_shared_hidden_layers,
             activation=activation,

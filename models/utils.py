@@ -20,7 +20,7 @@ class MLP(nn.Module):
         return self.layers(x)
 
 
-class THead(nn.Module):
+class TBranch(nn.Module):
     def __init__(self, representation_size, hidden_sizes, activation, dropout_prob):
         super().__init__()
         self.t_layers = MLP(
@@ -44,7 +44,7 @@ class THead(nn.Module):
         return self.t_layers(representation) * treatment + self.c_layers(representation) * (1 - treatment)
 
 
-class SHead(nn.Module):
+class SBranch(nn.Module):
     def __init__(self, representation_size, hidden_sizes, activation, dropout_prob):
         super().__init__()
         self.layers = MLP(
