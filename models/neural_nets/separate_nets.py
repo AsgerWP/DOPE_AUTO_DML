@@ -79,8 +79,8 @@ class SeparateNeuralNets(nn.Module):
 
     def riesz_forward(self, covariates, treatment):
         device = next(self.parameters()).device
-        treatment = treatment.to(device)
         covariates = covariates.to(device)
+        treatment = treatment.to(device)
         return self.riesz_branch(self.riesz_trunk(covariates), treatment)
 
     def get_outcome_mse_loss(self, batch):
@@ -114,7 +114,6 @@ class SeparateNeuralNets(nn.Module):
         self._fit(data, self.get_outcome_mse_loss, lr, weight_decay, batch_size, epochs, patience)
 
     def _fit(self, data, loss_fn, lr, weight_decay, batch_size, epochs, patience):
-        device = next(self.parameters()).device
         optimizer = torch.optim.Adam(
             filter(lambda p: p.requires_grad, self.parameters()), lr=lr, weight_decay=weight_decay
         )
