@@ -5,26 +5,27 @@ from torch.utils.data import DataLoader, TensorDataset
 
 
 class ATEDataset:
-    def __init__(self, data, treatment_column, outcome_column, covariate_columns, truth=None):
+    def __init__(self, data, treatment_column, outcome_column, covariate_columns, truth=None, folds=None):
         self.data = data
         self.treatment_column = treatment_column
         self.outcome_column = outcome_column
         self.covariate_columns = covariate_columns
         self.truth = truth
+        self.folds = folds
 
     def split_into_train_and_validation_sets(self, train_size):
         train_data, test_data = train_test_split(
             self.data, train_size=train_size, stratify=self.data[:, self.treatment_column]
         )
         return (
-            ATEDataset(
+            self.__class__(
                 data=train_data,
                 treatment_column=self.treatment_column,
                 outcome_column=self.outcome_column,
                 covariate_columns=self.covariate_columns,
                 truth=self.truth,
             ),
-            ATEDataset(
+            self.__class__(
                 data=test_data,
                 treatment_column=self.treatment_column,
                 outcome_column=self.outcome_column,
@@ -48,6 +49,40 @@ class ATEDataset:
     def covariates_tensor(self):
         covariates = self.data[:, self.covariate_columns].astype(np.float32)
         return torch.from_numpy(covariates)
+
+    def create_folds(self, n_folds):
+        number_of_samples = self.data.shape[0]
+        indices = np.arange(number_of_samples, dtype=int)
+        treated_indices = indices[self.data[:, self.treatment_column] == 1]
+        control_indices = indices[self.data[:, self.treatment_column] == 0]
+        np.random.shuffle(treated_indices)
+        np.random.shuffle(control_indices)
+        treated_fold_indices = np.array_split(treated_indices, n_folds)
+        control_fold_indices = np.array_split(control_indices, n_folds)
+        self.folds = [
+            np.concat((treated, control)) for treated, control in zip(treated_fold_indices, control_fold_indices)
+        ]
+
+    def get_fit_and_test_folds(self, test_fold):
+        fit_folds = [self.folds[i] for i in range(len(self.folds)) if i != test_fold]
+        fit_fold_indices = np.concat(fit_folds)
+        test_fold_indices = self.folds[test_fold]
+        return (
+            self.__class__(
+                data=self.data[fit_fold_indices, :],
+                treatment_column=self.treatment_column,
+                outcome_column=self.outcome_column,
+                covariate_columns=self.covariate_columns,
+                truth=self.truth,
+            ),
+            self.__class__(
+                data=self.data[test_fold_indices, :],
+                treatment_column=self.treatment_column,
+                outcome_column=self.outcome_column,
+                covariate_columns=self.covariate_columns,
+                truth=self.truth,
+            ),
+        )
 
 
 class IHDPDataset(ATEDataset):
