@@ -69,23 +69,26 @@ class SeparateNeuralNets(NeuralNetwork):
             raise ValueError("Invalid branch type. Must be 't_learner' or 's_learner'.")
 
     def outcome_forward(self, covariates, treatment):
-        device = next(self.parameters()).device
-        covariates = covariates.to(device)
-        treatment = treatment.to(device)
         return self.outcome_branch(self.outcome_trunk(covariates), treatment)
 
     def riesz_forward(self, covariates, treatment):
-        device = next(self.parameters()).device
-        covariates = covariates.to(device)
-        treatment = treatment.to(device)
         return self.riesz_branch(self.riesz_trunk(covariates), treatment)
 
     def get_outcome_mse_loss(self, batch):
         covariates, treatment, outcome = batch
+        device = next(self.parameters()).device
+        covariates = covariates.to(device)
+        treatment = treatment.to(device)
+        outcome = outcome.to(device)
+
         return nn.functional.mse_loss(self.outcome_forward(covariates, treatment), outcome)
 
     def get_riesz_loss(self, batch):
         covariates, treatment, _ = batch
+        device = next(self.parameters()).device
+        covariates = covariates.to(device)
+        treatment = treatment.to(device)
+
         return (
             self.riesz_forward(covariates, treatment) ** 2
             - 2 * self.moment_functional(self.riesz_forward, covariates, treatment)

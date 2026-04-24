@@ -48,18 +48,12 @@ class RieszNet(NeuralNetwork):
         self.epsilon = nn.Parameter(torch.tensor(0.0), requires_grad=True)
 
     def uncorrected_outcome_forward(self, covariates, treatment):
-        device = next(self.parameters()).device
-        covariates = covariates.to(device)
-        treatment = treatment.to(device)
         net_input = torch.cat((covariates, treatment), dim=1)
         return self.outcome_branch(self.shared_trunk(net_input), treatment)
 
     def riesz_forward(self, covariates, treatment):
-        device = next(self.parameters()).device
-        covariates = covariates.to(device)
-        treatment = treatment.to(device)
         net_input = torch.cat((covariates, treatment), dim=1)
-        return self.riesz_branch(self.shared_trunk(net_input.to(device)))
+        return self.riesz_branch(self.shared_trunk(net_input))
 
     def outcome_forward(self, covariates, treatment):
         return self.uncorrected_outcome_forward(covariates, treatment) + self.epsilon * self.riesz_forward(
@@ -68,6 +62,10 @@ class RieszNet(NeuralNetwork):
 
     def get_riesz_net_loss(self, batch):
         covariates, treatment, outcome = batch
+        device = next(self.parameters()).device
+        covariates = covariates.to(device)
+        treatment = treatment.to(device)
+        outcome = outcome.to(device)
 
         outcome_loss = nn.functional.mse_loss(self.uncorrected_outcome_forward(covariates, treatment), outcome)
         riesz_loss = (

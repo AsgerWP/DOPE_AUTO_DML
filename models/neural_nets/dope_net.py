@@ -61,15 +61,9 @@ class DOPENeuralNet(NeuralNetwork):
             raise ValueError("Invalid branch type. Must be 't_learner' or 's_learner'.")
 
     def outcome_forward(self, covariates, treatment):
-        device = next(self.parameters()).device
-        covariates = covariates.to(device)
-        treatment = treatment.to(device)
         return self.outcome_branch(self.shared_trunk(covariates), treatment)
 
     def riesz_forward(self, covariates, treatment):
-        device = next(self.parameters()).device
-        covariates = covariates.to(device)
-        treatment = treatment.to(device)
         return self.riesz_branch(self.shared_trunk(covariates), treatment)
 
     def freeze_shared_trunk(self):
@@ -78,16 +72,25 @@ class DOPENeuralNet(NeuralNetwork):
 
     def get_outcome_mse_loss(self, batch):
         covariates, treatment, outcome = batch
+        device = next(self.parameters()).device
+        covariates = covariates.to(device)
+        treatment = treatment.to(device)
+        outcome = outcome.to(device)
         return nn.functional.mse_loss(self.outcome_forward(covariates, treatment), outcome)
 
     def get_riesz_loss(self, batch):
         covariates, treatment, _ = batch
+        device = next(self.parameters()).device
+        covariates = covariates.to(device)
+        treatment = treatment.to(device)
         return (
             self.riesz_forward(covariates, treatment) ** 2
             - 2 * self.moment_functional(self.riesz_forward, covariates, treatment)
         ).mean()
 
-    def fit_riesz_branch(self, data, batch_size=1000, epochs=1000, lr=1e-3, patience=30, weight_decay=1e-3, lambda_lasso=0):
+    def fit_riesz_branch(
+        self, data, batch_size=1000, epochs=1000, lr=1e-3, patience=30, weight_decay=1e-3, lambda_lasso=0
+    ):
         self._fit(
             data=data,
             loss_fn=self.get_riesz_loss,
@@ -100,7 +103,9 @@ class DOPENeuralNet(NeuralNetwork):
             lambda_lasso=lambda_lasso,
         )
 
-    def fit_outcome_branch(self, data, batch_size=64, epochs=1000, lr=1e-3, patience=30, weight_decay=1e-3, lambda_lasso=0):
+    def fit_outcome_branch(
+        self, data, batch_size=64, epochs=1000, lr=1e-3, patience=30, weight_decay=1e-3, lambda_lasso=0
+    ):
         self._fit(
             data=data,
             loss_fn=self.get_outcome_mse_loss,

@@ -20,9 +20,10 @@ class NeuralNetwork(nn.Module, ABC):
         pass
 
     def get_estimates(self, data):
-        covariates = data.covariates_tensor()
-        treatment = data.treatments_tensor()
-        outcome = data.outcomes_tensor()
+        device = next(self.parameters()).device
+        covariates = data.covariates_tensor().to(device)
+        treatment = data.treatments_tensor().to(device)
+        outcome = data.outcomes_tensor().to(device)
 
         plugin_terms = self.moment_functional(self.outcome_forward, covariates, treatment)
         correction_terms = self.riesz_forward(covariates, treatment) * (
