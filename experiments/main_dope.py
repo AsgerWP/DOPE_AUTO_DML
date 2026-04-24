@@ -18,15 +18,24 @@ def run_experiment(replication_id, seed):
     model = DOPENeuralNet(
         moment_functional=functional,
         n_covariates=25,
-        shared_hidden_layers=[100, 100, 100],
+        shared_hidden_layers=[100, 100, 100, 100],
         not_shared_hidden_layers=[100, 100],
         activation=torch.nn.ELU,
         outcome_branch_type="t_learner",
         riesz_branch_type="s_learner",
-        activation_after_final_shared_layer=True,
+        activation_after_final_shared_layer=False,
     )
     model.to(device)
-    model.fit_outcome_branch(data=data)
+    lambda_lasso = 0
+    best = 1e6
+    lambda_lassos = [0, 1e-2, 1e-1, 1, 10]
+    for l in lambda_lassos:
+        cv_res = model.cv_outcome_branch(data=data, n_folds=5, lambda_lasso=l)
+        print(l, cv_res)
+        if cv_res < best:
+            lambda_lasso = l
+
+    model.fit_outcome_branch(data=data, lambda_lasso=lambda_lasso)
     model.freeze_shared_trunk()
     model.fit_riesz_branch(data=data)
 
