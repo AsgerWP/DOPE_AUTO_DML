@@ -18,14 +18,14 @@ class ATEDataset:
             self.data, train_size=train_size, stratify=self.data[:, self.treatment_column]
         )
         return (
-            self.__class__(
+            ATEDataset(
                 data=train_data,
                 treatment_column=self.treatment_column,
                 outcome_column=self.outcome_column,
                 covariate_columns=self.covariate_columns,
                 truth=self.truth,
             ),
-            self.__class__(
+            ATEDataset(
                 data=test_data,
                 treatment_column=self.treatment_column,
                 outcome_column=self.outcome_column,
@@ -68,14 +68,14 @@ class ATEDataset:
         fit_fold_indices = np.concat(fit_folds)
         test_fold_indices = self.folds[test_fold]
         return (
-            self.__class__(
+            ATEDataset(
                 data=self.data[fit_fold_indices, :],
                 treatment_column=self.treatment_column,
                 outcome_column=self.outcome_column,
                 covariate_columns=self.covariate_columns,
                 truth=self.truth,
             ),
-            self.__class__(
+            ATEDataset(
                 data=self.data[test_fold_indices, :],
                 treatment_column=self.treatment_column,
                 outcome_column=self.outcome_column,

@@ -50,7 +50,15 @@ class NeuralNetwork(nn.Module, ABC):
                 lambda_lasso=lambda_lasso,
             )
             self.eval()
-            cv_results.append(loss_fn(test_fold).item())
+            cv_results.append(
+                loss_fn(
+                    (
+                        test_fold.covariates_tensor(),
+                        test_fold.treatments_tensor(),
+                        test_fold.outcomes_tensor(),
+                    )
+                ).item()
+            )
             self._reset_parameters()
         return sum(cv_results) / len(cv_results)
 
