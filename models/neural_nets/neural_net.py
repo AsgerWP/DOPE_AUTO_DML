@@ -33,6 +33,32 @@ class NeuralNetwork(nn.Module, ABC):
 
         return {"point_estimate": dr_terms.mean().item(), "var_estimate": dr_terms.var().item()}
 
+    def _cv(self, data, n_folds, loss_fn, trunk, lr, weight_decay, batch_size, epochs, patience, lambda_lasso):
+        data.create_folds(n_folds=n_folds)
+        cv_results = []
+        for i in range(n_folds):
+            fit_fold, test_fold = data.get_fit_and_test_folds(test_fold=i)
+            self._fit(
+                data=fit_fold,
+                loss_fn=loss_fn,
+                trunk=trunk,
+                lr=lr,
+                weight_decay=weight_decay,
+                batch_size=batch_size,
+                epochs=epochs,
+                patience=patience,
+                lambda_lasso=lambda_lasso,
+            )
+            self.eval()
+            cv_results.append(loss_fn(test_fold).item())
+            self._reset_parameters()
+        return sum(cv_results) / len(cv_results)
+
+    def _reset_parameters(self):
+        for m in self.modules():
+            if hasattr(m, "reset_parameters") and m is not self:
+                m.reset_parameters()
+
     def _fit(self, data, loss_fn, trunk, lr, weight_decay, batch_size, epochs, patience, lambda_lasso):
         decay_params = []
         no_decay_params = []

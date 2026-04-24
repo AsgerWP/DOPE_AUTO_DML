@@ -88,6 +88,31 @@ class DOPENeuralNet(NeuralNetwork):
             - 2 * self.moment_functional(self.riesz_forward, covariates, treatment)
         ).mean()
 
+    def cv_outcome_branch(
+        self,
+        data,
+        n_folds,
+        trunk,
+        batch_size=1000,
+        epochs=1000,
+        lr=1e-3,
+        patience=30,
+        weight_decay=1e-3,
+        lambda_lasso=0,
+    ):
+        return self._cv(
+            data=data,
+            n_folds=n_folds,
+            loss_fn=self.get_outcome_mse_loss,
+            trunk=trunk,
+            lr=lr,
+            weight_decay=weight_decay,
+            batch_size=batch_size,
+            epochs=epochs,
+            patience=patience,
+            lambda_lasso=lambda_lasso,
+        )
+
     def fit_riesz_branch(
         self, data, batch_size=1000, epochs=1000, lr=1e-3, patience=30, weight_decay=1e-3, lambda_lasso=0
     ):
