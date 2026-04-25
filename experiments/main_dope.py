@@ -35,7 +35,6 @@ def run_experiment(replication_id, seed):
         print(l, cv_res)
         if cv_res < best:
             lambda_lasso = l
-        model.reset_parameters()
 
     model.fit_outcome_branch(data=data, lambda_lasso=lambda_lasso)
     model.freeze_shared_trunk()

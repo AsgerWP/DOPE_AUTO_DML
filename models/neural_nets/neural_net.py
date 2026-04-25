@@ -58,9 +58,11 @@ class NeuralNetwork(nn.Module, ABC):
                     )
                 ).item()
             )
+            self._reset_parameters()
+
         return sum(cv_results) / len(cv_results)
 
-    def reset_parameters(self):
+    def _reset_parameters(self):
         for m in self.modules():
             if hasattr(m, "reset_parameters") and m is not self:
                 m.reset_parameters()
