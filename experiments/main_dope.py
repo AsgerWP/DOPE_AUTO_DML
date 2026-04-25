@@ -28,7 +28,7 @@ def run_experiment(replication_id, seed):
     model.to(device)
     lambda_lasso = 0
     best = 1e6
-    lambda_lassos = [0, 1e-2, 1e-1, 1, 10]
+    lambda_lassos = [0, 1e-2, 1e-1, 1]
     data.create_folds(n_folds=5)
     for l in lambda_lassos:
         cv_res = model.cv_outcome_branch(data=data, lambda_lasso=l)
