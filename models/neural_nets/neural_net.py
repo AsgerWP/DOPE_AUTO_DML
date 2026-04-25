@@ -33,10 +33,9 @@ class NeuralNetwork(nn.Module, ABC):
 
         return {"point_estimate": dr_terms.mean().item(), "var_estimate": dr_terms.var().item()}
 
-    def _cv(self, data, n_folds, loss_fn, trunk, lr, weight_decay, batch_size, epochs, patience, lambda_lasso):
-        data.create_folds(n_folds=n_folds)
+    def _cv(self, data, loss_fn, trunk, lr, weight_decay, batch_size, epochs, patience, lambda_lasso):
         cv_results = []
-        for i in range(n_folds):
+        for i in range(len(data.folds)):
             fit_fold, test_fold = data.get_fit_and_test_folds(test_fold=i)
             self._fit(
                 data=fit_fold,
@@ -59,10 +58,9 @@ class NeuralNetwork(nn.Module, ABC):
                     )
                 ).item()
             )
-            self._reset_parameters()
         return sum(cv_results) / len(cv_results)
 
-    def _reset_parameters(self):
+    def reset_parameters(self):
         for m in self.modules():
             if hasattr(m, "reset_parameters") and m is not self:
                 m.reset_parameters()

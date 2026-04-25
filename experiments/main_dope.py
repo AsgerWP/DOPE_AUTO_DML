@@ -9,7 +9,7 @@ from models.neural_nets.functionals import AverageTreatmentEffect
 
 
 def run_experiment(replication_id, seed):
-    device = "cpu"
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     torch.manual_seed(seed)
     np.random.seed(seed)
 
@@ -29,11 +29,13 @@ def run_experiment(replication_id, seed):
     lambda_lasso = 0
     best = 1e6
     lambda_lassos = [0, 1e-2, 1e-1, 1, 10]
+    data.create_folds(n_folds=5)
     for l in lambda_lassos:
-        cv_res = model.cv_outcome_branch(data=data, n_folds=5, lambda_lasso=l)
+        cv_res = model.cv_outcome_branch(data=data, lambda_lasso=l)
         print(l, cv_res)
         if cv_res < best:
             lambda_lasso = l
+        model.reset_parameters()
 
     model.fit_outcome_branch(data=data, lambda_lasso=lambda_lasso)
     model.freeze_shared_trunk()

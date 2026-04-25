@@ -91,7 +91,6 @@ class DOPENeuralNet(NeuralNetwork):
     def cv_outcome_branch(
         self,
         data,
-        n_folds,
         batch_size=1000,
         epochs=1000,
         lr=1e-3,
@@ -101,7 +100,6 @@ class DOPENeuralNet(NeuralNetwork):
     ):
         return self._cv(
             data=data,
-            n_folds=n_folds,
             loss_fn=self.get_outcome_mse_loss,
             trunk=self.shared_trunk,
             lr=lr,
