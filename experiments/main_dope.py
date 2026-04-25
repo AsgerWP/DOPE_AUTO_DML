@@ -7,9 +7,10 @@ from datasets.datasets import IHDPDataset
 from models.neural_nets.dope_net import DOPENeuralNet
 from models.neural_nets.functionals import AverageTreatmentEffect
 
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print('Using device:', device)
 
 def run_experiment(replication_id, seed):
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     torch.manual_seed(seed)
     np.random.seed(seed)
 
