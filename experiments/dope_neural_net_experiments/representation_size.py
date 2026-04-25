@@ -47,7 +47,7 @@ def run_experiment(replication_id, seed, representation_size):
 
 if __name__ == "__main__":
     results = []
-    output_file = "results/results.csv"
+    output_file = "results/dope_neural_net_results/ihdp_representation_size_experiment.csv"
     for replication_id in range(1000):
         print(f"Replication ID: {replication_id + 1}")
         rows = []
