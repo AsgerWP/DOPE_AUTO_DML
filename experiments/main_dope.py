@@ -34,6 +34,7 @@ def run_experiment(replication_id, seed):
         cv_res = model.cv_outcome_branch(data=data, lambda_lasso=l)
         print(l, cv_res)
         if cv_res < best:
+            best = cv_res
             lambda_lasso = l
 
     model.fit_outcome_branch(data=data, lambda_lasso=lambda_lasso)
